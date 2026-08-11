@@ -4,7 +4,7 @@
 - [x] T02 Implementar adaptador autenticado do backend, erros e permissões com testes.
 - [x] T03 Implementar rotas BFF de login, sessão e logout com cookie seguro e testes.
 - [x] T04 Implementar proteção otimista por proxy e validação autoritativa no dashboard com testes.
-- [ ] T05 Implementar telas responsivas de login/dashboard e validar test, typecheck, lint e build.
+- [x] T05 Implementar telas responsivas de login/dashboard e validar test, typecheck, lint e build.
 
 ## Matriz de rastreabilidade
 
