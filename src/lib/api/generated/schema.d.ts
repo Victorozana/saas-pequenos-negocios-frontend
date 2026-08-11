@@ -36,6 +36,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/team-members/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AcceptTeamInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/company-registry/{cnpj}": {
         parameters: {
             query?: never;
@@ -214,6 +230,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["UpdateQuotationStatus"];
+        trace?: never;
+    };
+    "/api/v1/quotations/{id}/convert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ConvertQuotationToWorkOrderInQuotation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/quotations/{id}/pdf": {
@@ -508,6 +540,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/team-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTeamMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/team-members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateTeamMember"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/team-members/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SendTeamInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/subscriptions/current": {
         parameters: {
             query?: never;
@@ -652,6 +732,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcceptInvitationRequest: {
+            token: string;
+            password: string;
+            name: string | null;
+        };
         AppointmentType: number;
         ChangePlanCommand: {
             /** Format: uuid */
@@ -882,6 +967,11 @@ export interface components {
             /** Format: uuid */
             appointmentId: string;
         };
+        SendInvitationRequest: {
+            email: string;
+            role: string;
+            permissions: string[] | null;
+        };
         SendManualNotificationRequest: {
             recipient: string;
             channel: string;
@@ -954,9 +1044,24 @@ export interface components {
             basePrice: unknown;
             isActive: boolean;
         };
+        UpdateTeamMemberRequest: {
+            role: string;
+            permissions: string[] | null;
+        };
         UpdateWorkOrderStatusRequest: {
             status?: components["schemas"]["WorkOrderStatus"];
             notes?: string | null;
+        };
+        UserProfileResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            email: string;
+            role: string;
+            /** Format: uuid */
+            tenantId: string;
+            permissions: string[];
+            status: string;
         };
         VerifyEmailRequest: {
             token: string;
@@ -1032,6 +1137,28 @@ export interface operations {
             };
         };
     };
+    AcceptTeamInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcceptInvitationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     LookupCompanyRegistry: {
         parameters: {
             query?: never;
@@ -1090,7 +1217,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["UserProfileResponse"];
+                };
             };
         };
     };
@@ -1512,6 +1641,44 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ConvertQuotationToWorkOrderInQuotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1959,6 +2126,70 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetTeamMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateTeamMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTeamMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SendTeamInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendInvitationRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
