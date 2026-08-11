@@ -99,4 +99,3 @@ export function canAccessModule(
     (!module.permission || hasPermission(permissions, module.permission))
   );
 }
-

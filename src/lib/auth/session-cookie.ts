@@ -9,7 +9,6 @@ export function sessionCookieSecurityOptions() {
     priority: "high" as const,
   };
 }
-
 export function createSessionCookieOptions(expiresAt: string) {
   const expires = new Date(expiresAt);
 
@@ -30,4 +29,3 @@ export function expiredSessionCookieOptions() {
     maxAge: 0,
   };
 }
-

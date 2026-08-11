@@ -32,7 +32,7 @@ Quando o perfil autenticado for carregado, a navegação deve habilitar apenas m
 
 ### AUTH-007 — Segurança operacional
 
-O frontend deve rejeitar configuração de API ausente ou com protocolo diferente de HTTP/HTTPS, usar cookie `SameSite=Lax`, `HttpOnly`, escopo `/` e `Secure` em produção.
+Em produção, o frontend deve rejeitar configuração de API ausente. Em qualquer ambiente, deve rejeitar protocolo diferente de HTTP/HTTPS. Em desenvolvimento, pode usar o fallback documentado `http://localhost:5050`. O cookie deve usar `SameSite=Lax`, `HttpOnly`, escopo `/` e `Secure` em produção.
 
 ## Fora do escopo
 
@@ -58,4 +58,3 @@ O frontend deve rejeitar configuração de API ausente ou com protocolo diferent
 - Perfil: `GET /api/v1/users/me` exige Bearer token.
 - Permissões: 13 chaves em `Domain/Identity/Permissions.cs`.
 - Não existem endpoints de refresh token ou logout na versão inspecionada.
-

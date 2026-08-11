@@ -26,4 +26,3 @@ describe("dashboard proxy", () => {
     expect(response.headers.get("location")).toBeNull();
   });
 });
-

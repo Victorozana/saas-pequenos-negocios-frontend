@@ -18,4 +18,3 @@ describe("permission helpers", () => {
     expect(canAccessModule(appointments, permissions)).toBe(false);
   });
 });
-

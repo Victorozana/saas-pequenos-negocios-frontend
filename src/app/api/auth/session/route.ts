@@ -55,4 +55,3 @@ export async function GET(): Promise<NextResponse> {
   const cookieStore = await cookies();
   return handleSession(cookieStore.get(SESSION_COOKIE_NAME)?.value);
 }
-

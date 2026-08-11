@@ -16,3 +16,13 @@
 | AUTH-005 | T03, T05 | testes das opções/remoção do cookie |
 | AUTH-006 | T02, T05 | testes de permissões e navegação |
 | AUTH-007 | T02, T03 | testes de configuração e cookie |
+
+## Gate Check Commands
+
+```powershell
+npm run test
+npm run typecheck
+npm run lint
+npm run build
+git diff --check 7716a1c..HEAD
+```

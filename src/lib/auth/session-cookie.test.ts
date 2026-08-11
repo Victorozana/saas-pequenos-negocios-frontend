@@ -30,4 +30,3 @@ describe("session cookie", () => {
     );
   });
 });
-

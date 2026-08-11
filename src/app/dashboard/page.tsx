@@ -126,4 +126,3 @@ export default async function DashboardPage() {
     </AppShell>
   );
 }
-

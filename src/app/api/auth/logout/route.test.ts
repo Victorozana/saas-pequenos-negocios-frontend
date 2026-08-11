@@ -13,4 +13,3 @@ describe("logout BFF route", () => {
     expect(cookie).toContain("HttpOnly");
   });
 });
-

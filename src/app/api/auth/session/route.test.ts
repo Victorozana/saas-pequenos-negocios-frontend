@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { UserProfile } from "@/lib/auth/backend";
+import { AuthBackendError, type UserProfile } from "@/lib/auth/backend";
 
 import { handleSession } from "./route";
 
@@ -33,5 +33,16 @@ describe("session BFF route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ user: profile });
     expect(await responseCopy.text()).not.toContain("private-token");
+  });
+
+  it("expires the cookie when the backend rejects the session", async () => {
+    const loadProfile = vi.fn(async () => {
+      throw new AuthBackendError(401, "Sua sessão expirou. Entre novamente.");
+    });
+
+    const response = await handleSession("expired-token", loadProfile);
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 });

@@ -33,4 +33,3 @@ export async function getSessionUser(): Promise<UserProfile | null> {
   const cookieStore = await cookies();
   return resolveSessionUser(cookieStore.get(SESSION_COOKIE_NAME)?.value);
 }
-

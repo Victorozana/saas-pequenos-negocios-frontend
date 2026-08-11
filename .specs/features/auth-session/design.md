@@ -18,4 +18,3 @@
 ## Configuração
 
 `API_BASE_URL` é uma variável somente do servidor. Em desenvolvimento, o fallback documentado é `http://localhost:5050`; produção deve configurar explicitamente o endereço da API.
-

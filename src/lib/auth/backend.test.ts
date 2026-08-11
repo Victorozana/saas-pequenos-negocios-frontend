@@ -84,6 +84,40 @@ describe("auth backend adapter", () => {
     });
   });
 
+  it.each([
+    [400, "Preencha o e-mail e a senha corretamente."],
+    [403, "Confirme seu e-mail antes de entrar."],
+  ])("maps backend status %i to its safe message", async (status, message) => {
+    const fetcher = vi.fn(async () =>
+      Response.json({ title: "backend detail" }, { status }),
+    );
+
+    await expect(
+      authenticateWithBackend(
+        { email: "vitoria@example.com", password: "secret" },
+        fetcher,
+        "https://api.example.com",
+      ),
+    ).rejects.toMatchObject({ status, message });
+  });
+
+  it("maps network failures to service unavailability", async () => {
+    const fetcher = vi.fn(async () => {
+      throw new Error("ECONNREFUSED");
+    });
+
+    await expect(
+      authenticateWithBackend(
+        { email: "vitoria@example.com", password: "secret" },
+        fetcher,
+        "https://api.example.com",
+      ),
+    ).rejects.toMatchObject({
+      status: 503,
+      message: "O serviço está temporariamente indisponível. Tente novamente.",
+    });
+  });
+
   it("loads the current profile with a bearer token", async () => {
     const fetcher = vi.fn(async () => Response.json(profile));
 
