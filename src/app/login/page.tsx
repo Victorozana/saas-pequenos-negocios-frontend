@@ -1,4 +1,5 @@
 import { BarChart3, CalendarCheck2, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 import { LoginForm } from "@/components/auth/login-form";
 
@@ -89,6 +90,13 @@ export default function LoginPage() {
           </p>
 
           <LoginForm />
+
+          <p className="mt-6 text-sm text-slate-600">
+            Ainda não tem uma conta?{" "}
+            <Link className="font-semibold text-blue-600 hover:underline" href="/cadastro">
+              Cadastre seu negócio
+            </Link>
+          </p>
 
           <div className="mt-8 flex items-center gap-2 text-xs text-slate-400">
             <ShieldCheck className="size-4" />
