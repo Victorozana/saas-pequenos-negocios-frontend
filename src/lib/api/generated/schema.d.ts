@@ -961,7 +961,11 @@ export interface components {
             adminName: string;
             adminCpf: string;
             adminEmail: string;
+            adminPassword: string;
             isLegalRepresentative: boolean;
+        };
+        RegisterTenantResponse: {
+            message: string;
         };
         ScheduleAppointmentReminderCommand: {
             /** Format: uuid */
@@ -1194,12 +1198,34 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
+                headers: {
+                    /** @description Development/Test only. Token used to confirm the administrator email after registration. */
+                    "X-Development-Verification-Token"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegisterTenantResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
