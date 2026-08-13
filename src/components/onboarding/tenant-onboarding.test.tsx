@@ -31,7 +31,7 @@ function reachRegistrationStep() {
 }
 
 describe("TenantOnboarding", () => {
-  afterEach(() => { cleanup(); vi.restoreAllMocks(); replace.mockReset(); });
+  afterEach(() => { cleanup(); vi.restoreAllMocks(); replace.mockReset(); window.history.replaceState({}, "", "/"); localStorage.clear(); sessionStorage.clear(); });
   it("blocks an administrator password that does not meet the policy", async () => {
     render(<TenantOnboarding />); fillStep({ "CNPJ":"1", "Razão social":"Nexo", "Nome fantasia":"Nexo", "Natureza jurídica":"LTDA", "CNAE principal":"1", "E-mail da empresa":"e@n.com", "Telefone":"1" }); fireEvent.change(screen.getByLabelText("Categoria"), { target:{value:"10"} }); fireEvent.click(screen.getByRole("button", {name:"Continuar"}));
     fillStep({ "Logradouro":"Rua", "Número":"1", "Complemento":"-", "Bairro":"Centro", "Cidade":"SP", "UF":"SP", "CEP":"1", "Inscrição estadual":"ISENTO", "Inscrição municipal":"1", "E-mail fiscal":"f@n.com" }); fireEvent.change(screen.getByLabelText("Regime tributário"), {target:{value:"SimplesNacional"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"}));
@@ -39,9 +39,48 @@ describe("TenantOnboarding", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("ao menos 12 caracteres");
   });
   it("confirms after registration without placing the token in navigation", async () => {
-    const fetcher = vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(Response.json({ message:"Criado", token:"verification-token" }, {status:201})).mockResolvedValueOnce(new Response(null,{status:204}));
+    let resolveVerification: ((response: Response) => void) | undefined;
+    const fetcher = vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(Response.json({ message:"Criado", token:"verification-token" }, {status:201})).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveVerification = resolve; }));
     render(<TenantOnboarding />); fillStep({ "CNPJ":"1", "Razão social":"Nexo", "Nome fantasia":"Nexo", "Natureza jurídica":"LTDA", "CNAE principal":"1", "E-mail da empresa":"e@n.com", "Telefone":"1" }); fireEvent.change(screen.getByLabelText("Categoria"), {target:{value:"10"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"})); fillStep({ "Logradouro":"Rua", "Número":"1", "Complemento":"-", "Bairro":"Centro", "Cidade":"SP", "UF":"SP", "CEP":"1", "Inscrição estadual":"ISENTO", "Inscrição municipal":"1", "E-mail fiscal":"f@n.com" }); fireEvent.change(screen.getByLabelText("Regime tributário"), {target:{value:"SimplesNacional"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"})); fillStep({ "Nome do administrador":"Admin", "CPF":"1", "E-mail do administrador":"a@n.com", "Senha":"SenhaSegura123!" }); fireEvent.click(screen.getByRole("button", {name:"Concluir cadastro"}));
-    await screen.findByRole("button", {name:"Confirmar e-mail"}); expect(fetcher.mock.calls[0][0]).toBe("/api/tenants/register"); expect((fetcher.mock.calls[0][1] as RequestInit).body).toContain('"cnpj":"1"'); expect((fetcher.mock.calls[0][1] as RequestInit).body).toContain('"addressStreet":"Rua"'); fireEvent.click(screen.getByRole("button", {name:"Confirmar e-mail"})); await waitFor(()=>expect(replace).toHaveBeenCalledWith("/login")); expect(fetcher).toHaveBeenLastCalledWith("/api/auth/email-verifications", expect.objectContaining({ body: JSON.stringify({token:"verification-token"}) }));
+    await screen.findByRole("button", {name:"Confirmar e-mail"}); expect(fetcher.mock.calls[0][0]).toBe("/api/tenants/register"); expect((fetcher.mock.calls[0][1] as RequestInit).body).toContain('"cnpj":"1"'); expect((fetcher.mock.calls[0][1] as RequestInit).body).toContain('"addressStreet":"Rua"'); fireEvent.click(screen.getByRole("button", {name:"Confirmar e-mail"})); await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2)); expect(fetcher).toHaveBeenLastCalledWith("/api/auth/email-verifications", expect.objectContaining({ body: JSON.stringify({token:"verification-token"}) })); expect(replace).not.toHaveBeenCalled(); resolveVerification?.(new Response(null,{status:204})); await waitFor(()=>expect(replace).toHaveBeenCalledWith("/login"));
+  });
+
+  it("keeps the verification token out of the URL, persistent storage, and logs", async () => {
+    const token = "verification-token";
+    const storageWriter = vi.spyOn(Storage.prototype, "setItem");
+    const loggers = [vi.spyOn(console, "log"), vi.spyOn(console, "info"), vi.spyOn(console, "warn"), vi.spyOn(console, "error")];
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ message: "Criado", token }, { status: 201 }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    window.history.replaceState({}, "", "/cadastro");
+    render(<TenantOnboarding />);
+    reachRegistrationStep();
+
+    fireEvent.click(screen.getByRole("button", { name: "Concluir cadastro" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar e-mail" }));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
+
+    expect(window.location.href).not.toContain(token);
+    expect(Array.from({ length: localStorage.length }, (_, index) => localStorage.getItem(localStorage.key(index)!)).join("")).not.toContain(token);
+    expect(Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.getItem(sessionStorage.key(index)!)).join("")).not.toContain(token);
+    expect(JSON.stringify(storageWriter.mock.calls)).not.toContain(token);
+    expect(JSON.stringify(loggers.flatMap((logger) => logger.mock.calls))).not.toContain(token);
+  });
+
+  it("shows a safe message and remains on email confirmation when confirmation fails", async () => {
+    vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(Response.json({ message: "Criado", token: "verification-token" }, { status: 201 }))
+      .mockResolvedValueOnce(Response.json({ message: "database connection leaked" }, { status: 500 }));
+    render(<TenantOnboarding />);
+    reachRegistrationStep();
+
+    fireEvent.click(screen.getByRole("button", { name: "Concluir cadastro" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar e-mail" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe("Não foi possível confirmar o e-mail.");
+    expect(screen.getByRole("heading", { name: "Confirme seu e-mail" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "Confirmar e-mail" })).toBeDefined();
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it("disables completion and announces loading while registration is pending", async () => {
