@@ -742,6 +742,15 @@ export interface components {
             /** Format: uuid */
             newPlanId?: string;
         };
+        CompanyRegistryResult: {
+            cnpj: string;
+            corporateName: string;
+            tradeName: string;
+            legalNature: string;
+            cnaes: string[];
+            status: string;
+            address: components["schemas"]["RegistryAddress"];
+        };
         ConversionMetricsDto: {
             /** Format: int32 */
             totalQuotations?: unknown;
@@ -966,6 +975,15 @@ export interface components {
         };
         RegisterTenantResponse: {
             message: string;
+        };
+        RegistryAddress: {
+            street: string;
+            number: string;
+            complement: string;
+            neighborhood: string;
+            city: string;
+            state: string;
+            zipCode: string;
         };
         ScheduleAppointmentReminderCommand: {
             /** Format: uuid */
@@ -1215,7 +1233,54 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CompanyRegistryResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

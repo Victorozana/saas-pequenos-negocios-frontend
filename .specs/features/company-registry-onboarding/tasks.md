@@ -48,7 +48,7 @@ T6 → T7
 **Commit**: `feat(cnpj): integrate configurable company registry`
 - **Done when**: exact provider URL, complete mapping, timeout, 404, non-success and malformed payload are tested and DI resolves the endpoint.
 
-### T3: Publish the typed company registry contract
+### T3: Publish the typed company registry contract ✅
 
 **Depends on**: T2
 **Requirements**: CNPJ-001..CNPJ-006
