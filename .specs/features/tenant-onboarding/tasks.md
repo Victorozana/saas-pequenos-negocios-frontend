@@ -123,9 +123,9 @@ T10 → T11 → T12 → T13
 **Gate**: Quick
 - **Done when**: component tests assert every generated `RegisterTenantRequest` field and a non-empty `Idempotency-Key`, reject each missing password-policy conjunct independently, and prove the accessible error association with the password field. Verified: 14/14 component tests and 75/75 repository tests pass.
 
-### T13: Prove registration success-response edge states
+### T13: Prove registration success-response edge states ✅
 
 **Depends on**: T12
 **Tests**: `src/components/onboarding/tenant-onboarding.test.tsx`
 **Gate**: Quick
-- **Done when**: component tests prove a 201 response without a token and a 201 response with an invalid body each show the specified safe message, retain applicable non-sensitive values, and do not advance to email confirmation.
+- **Done when**: component tests prove a 201 response without a token and a 201 response with an invalid body each show the specified safe message, retain applicable non-sensitive values, and do not advance to email confirmation. Verified: 16/16 component tests and 77/77 repository tests pass.

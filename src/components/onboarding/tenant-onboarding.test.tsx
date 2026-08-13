@@ -171,4 +171,31 @@ describe("TenantOnboarding", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toBe("Não foi possível concluir o cadastro agora. Tente novamente.");
   });
+
+  it.each([
+    [
+      "without a verification token",
+      () => Response.json({ message: "A confirmação não pode continuar neste ambiente." }, { status: 201 }),
+      "A confirmação não pode continuar neste ambiente.",
+    ],
+    [
+      "with an invalid body",
+      () => new Response("not-json", { status: 201, headers: { "Content-Type": "application/json" } }),
+      "Não foi possível concluir o cadastro agora. Tente novamente.",
+    ],
+  ])("keeps the registration step after a 201 response %s", async (_scenario, createResponse, message) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(createResponse());
+    render(<TenantOnboarding />);
+    reachRegistrationStep();
+
+    fireEvent.click(screen.getByRole("button", { name: "Concluir cadastro" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(message);
+    expect(screen.queryByRole("heading", { name: "Confirme seu e-mail" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Administrador" })).toBeDefined();
+    expect((screen.getByLabelText("E-mail do administrador") as HTMLInputElement).value).toBe("a@n.com");
+    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Voltar" }));
+    expect((screen.getByLabelText("Razão social") as HTMLInputElement).value).toBe("Nexo");
+  });
 });
