@@ -1201,8 +1201,6 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
-                    /** @description Development/Test only. Token used to confirm the administrator email after registration. */
-                    "X-Development-Verification-Token"?: string;
                     [name: string]: unknown;
                 };
                 content: {
