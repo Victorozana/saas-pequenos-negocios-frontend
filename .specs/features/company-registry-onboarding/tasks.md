@@ -57,7 +57,7 @@ T6 → T7
 **Commit**: `fix(openapi): type company registry responses`
 - **Done when**: backend OpenAPI and generated TypeScript expose the success body and safe error statuses.
 
-### T4: Add the safe company lookup BFF
+### T4: Add the safe company lookup BFF ✅
 
 **Depends on**: T3
 **Requirements**: CNPJ-002, CNPJ-004, CNPJ-005, CNPJ-006, CNPJ-011
