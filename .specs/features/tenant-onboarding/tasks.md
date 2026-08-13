@@ -62,12 +62,12 @@
 - **Gate**: Quick
 - **Done when**: component tests assert disabled loading feedback, safe 400/422/409/5xx registration messages, and retained non-sensitive values after a recoverable failure. Verified: 8/8 component tests pass.
 
-### T8: Cover malformed successful registration responses
+### T8: Cover malformed successful registration responses ✅
 
 - **Depends on**: T6
 - **Tests**: `src/app/api/tenants/register/route.test.ts`
 - **Gate**: Quick
-- **Done when**: the BFF test proves a 201 response with an invalid body returns the specified safe 502 message and does not return a token.
+- **Done when**: the BFF test proves a 201 response with an invalid body returns the specified safe 502 message and does not return a token. Verified: 4/4 route tests pass.
 
 ### T9: Cover confirmation-token containment and failure recovery
 

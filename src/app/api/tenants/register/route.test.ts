@@ -24,4 +24,11 @@ describe("tenant registration BFF", () => {
     expect(response.status).toBe(502);
     await expect(response.json()).resolves.toEqual({ message: "A confirmação não pode continuar neste ambiente." });
   });
+
+  it("rejects a malformed successful response without returning a verification token", async () => {
+    const response = await registerTenant(request, "key", async () => Response.json({ created: true }, { status: 201, headers: { "X-Development-Verification-Token": "verification-token" } }));
+
+    expect(response.status).toBe(502);
+    await expect(response.json()).resolves.toEqual({ message: "O serviço retornou uma resposta inválida." });
+  });
 });
