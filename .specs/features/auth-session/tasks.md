@@ -75,7 +75,7 @@ T5 → T6
 **Gate**: Build
 - **Done when**: login, logout, dashboard identity and permission-filtered navigation match the specification and the Build gate passes.
 
-### T6: Reconcile current authentication evidence
+### T6: Reconcile current authentication evidence ✅
 
 **Depends on**: T5
 **Tests**: unit
@@ -87,9 +87,9 @@ T5 → T6
 | Requirement | Tasks | Status |
 | --- | --- | --- |
 | AUTH-001 | T1, T2, T3, T5 | Implemented |
-| AUTH-002 | T2, T3, T5, T6 | Implemented; awaiting fresh verification |
+| AUTH-002 | T2, T3, T5, T6 | Verified |
 | AUTH-003 | T1, T2, T3 | Implemented |
-| AUTH-004 | T4, T6 | Implemented; awaiting fresh verification |
-| AUTH-005 | T3, T5, T6 | Implemented; awaiting fresh verification |
+| AUTH-004 | T4, T6 | Verified |
+| AUTH-005 | T3, T5, T6 | Verified |
 | AUTH-006 | T2, T5 | Implemented |
-| AUTH-007 | T2, T3, T6 | Implemented; awaiting fresh verification |
+| AUTH-007 | T2, T3, T6 | Verified |
