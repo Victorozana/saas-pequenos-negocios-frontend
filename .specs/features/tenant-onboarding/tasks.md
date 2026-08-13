@@ -46,9 +46,9 @@
 
 ## Phase 3: Release validation
 
-### T6: Run full checks and visual validation ⚠️
+### T6: Run full checks and visual validation ✅
 
 - **Depends on**: T1, T2, T3, T4, T5
 - **Tests**: all feature tests
 - **Gate**: Build
-- **Done when**: test, typecheck, lint, build and desktop/mobile visual checks pass.
+- **Done when**: test, typecheck, lint, build and desktop/mobile visual checks pass. Verified on 2026-08-13: 59/59 tests passed; typecheck, lint and production build passed; `/login` and `/cadastro` were checked at desktop and 390 px mobile widths without horizontal overflow.

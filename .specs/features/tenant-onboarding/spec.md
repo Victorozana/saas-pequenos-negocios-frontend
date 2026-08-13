@@ -89,14 +89,14 @@ Uma pessoa ainda sem conta precisa cadastrar seu negócio e seu primeiro adminis
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| ONBOARD-01 | P1: Criar o primeiro negócio | Execute | Implemented |
-| ONBOARD-02 | P1: Criar o primeiro negócio | Execute | Implemented |
-| ONBOARD-03 | P1: Confirmar e-mail | Execute | Implemented |
-| ONBOARD-04 | P1: Navegar entre acesso e cadastro | Execute | Implemented |
+| ONBOARD-01 | P1: Criar o primeiro negócio | Execute | Verified |
+| ONBOARD-02 | P1: Criar o primeiro negócio | Execute | Verified |
+| ONBOARD-03 | P1: Confirmar e-mail | Execute | Verified |
+| ONBOARD-04 | P1: Navegar entre acesso e cadastro | Execute | Verified |
 
-**Coverage:** 4 total, 0 mapped to tasks, 4 unmapped ⚠️
+**Coverage:** 4 total, 4 verified.
 
 ## Success Criteria
 
-- [ ] O fluxo de cadastro e confirmação pode ser demonstrado com o OpenAPI ativo.
-- [ ] Testes, typecheck, lint e build passam.
+- [x] O fluxo de cadastro e confirmação pode ser demonstrado com o OpenAPI ativo.
+- [x] Testes, typecheck, lint e build passam.
