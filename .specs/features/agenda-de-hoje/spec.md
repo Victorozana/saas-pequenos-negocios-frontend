@@ -63,9 +63,9 @@ Após o login, o dashboard ainda apresenta conteúdo de fundação e não inform
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
 | AGENDA-01 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |
-| AGENDA-02 | P1: Consultar a agenda pessoal de hoje | Tasks | Pending |
-| AGENDA-03 | P1: Consultar a agenda pessoal de hoje | Tasks | Pending |
-| AGENDA-04 | P1: Consultar a agenda pessoal de hoje | Tasks | Pending |
+| AGENDA-02 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |
+| AGENDA-03 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |
+| AGENDA-04 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |
 | AGENDA-05 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |
 | AGENDA-06 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |
 | AGENDA-07 | P1: Consultar a agenda pessoal de hoje | Tasks | Implementing |

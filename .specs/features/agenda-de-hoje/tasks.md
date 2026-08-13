@@ -53,6 +53,7 @@ T2 → T3
 
 ### T2: Create agenda block
 
+**Status**: Completed
 **What**: Render loading, populated, empty, error, and expired-session states from the BFF.
 **Where**: `src/components/dashboard/agenda-today.tsx`
 **Depends on**: T1
