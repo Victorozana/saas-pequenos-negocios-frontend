@@ -66,7 +66,7 @@ T6 → T7
 **Commit**: `feat(onboarding): add company registry bff`
 - **Done when**: the browser-facing route validates payloads, maps statuses and leaks no upstream detail.
 
-### T5: Integrate lookup into the company step
+### T5: Integrate lookup into the company step ✅
 
 **Depends on**: T4
 **Requirements**: CNPJ-007..CNPJ-011

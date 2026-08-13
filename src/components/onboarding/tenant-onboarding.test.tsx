@@ -60,6 +60,74 @@ function reachRegistrationStep() {
 
 describe("TenantOnboarding", () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); replace.mockReset(); window.history.replaceState({}, "", "/"); localStorage.clear(); sessionStorage.clear(); });
+  it("consults the BFF and populates every mapped company field while keeping them editable", async () => {
+    const company = {
+      cnpj: "00000000000191",
+      corporateName: "Empresa Exemplo LTDA",
+      tradeName: "Empresa Exemplo",
+      legalNature: "Sociedade Empresária Limitada",
+      cnaes: ["2391503", "4744005"],
+      status: "ATIVA",
+      address: { street:"Rua das Flores", number:"10", complement:"Sala 2", neighborhood:"Centro", city:"São Paulo", state:"SP", zipCode:"01001000" },
+    };
+    const fetcher = vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json(company));
+    render(<TenantOnboarding />);
+    fillStep({ "CNPJ":"00.000.000/0001-91", "E-mail da empresa":"contato@empresa.com", "Telefone":"11999999999" });
+    fireEvent.change(screen.getByLabelText("Categoria"), { target:{value:"10"} });
+
+    fireEvent.click(screen.getByRole("button", { name:"Consultar CNPJ" }));
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledWith("/api/company-registry/00.000.000%2F0001-91"));
+    expect((screen.getByLabelText("CNPJ") as HTMLInputElement).value).toBe(company.cnpj);
+    expect((screen.getByLabelText("Razão social") as HTMLInputElement).value).toBe(company.corporateName);
+    expect((screen.getByLabelText("Nome fantasia") as HTMLInputElement).value).toBe(company.tradeName);
+    expect((screen.getByLabelText("Natureza jurídica") as HTMLInputElement).value).toBe(company.legalNature);
+    expect((screen.getByLabelText("CNAE principal") as HTMLInputElement).value).toBe(company.cnaes[0]);
+    expect((screen.getByLabelText("E-mail da empresa") as HTMLInputElement).value).toBe("contato@empresa.com");
+    expect((screen.getByLabelText("Telefone") as HTMLInputElement).value).toBe("11999999999");
+
+    fireEvent.change(screen.getByLabelText("Razão social"), { target:{value:"Empresa Revisada LTDA"} });
+    fireEvent.click(screen.getByRole("button", { name:"Continuar" }));
+    expect((screen.getByLabelText("Logradouro") as HTMLInputElement).value).toBe(company.address.street);
+    expect((screen.getByLabelText("Número") as HTMLInputElement).value).toBe(company.address.number);
+    expect((screen.getByLabelText("Complemento") as HTMLInputElement).value).toBe(company.address.complement);
+    expect((screen.getByLabelText("Bairro") as HTMLInputElement).value).toBe(company.address.neighborhood);
+    expect((screen.getByLabelText("Cidade") as HTMLInputElement).value).toBe(company.address.city);
+    expect((screen.getByLabelText("UF") as HTMLInputElement).value).toBe(company.address.state);
+    expect((screen.getByLabelText("CEP") as HTMLInputElement).value).toBe(company.address.zipCode);
+    fireEvent.click(screen.getByRole("button", { name:"Voltar" }));
+    expect((screen.getByLabelText("Razão social") as HTMLInputElement).value).toBe("Empresa Revisada LTDA");
+  });
+
+  it("disables lookup and announces progress while the request is pending", async () => {
+    let resolveLookup: ((response: Response) => void) | undefined;
+    vi.spyOn(globalThis, "fetch").mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveLookup = resolve; }));
+    render(<TenantOnboarding />);
+    fillStep({ "CNPJ":"00000000000191" });
+
+    fireEvent.click(screen.getByRole("button", { name:"Consultar CNPJ" }));
+
+    const loadingButton = await screen.findByRole("button", { name:"Consultando…" });
+    expect((loadingButton as HTMLButtonElement).disabled).toBe(true);
+    resolveLookup?.(Response.json({}));
+  });
+
+  it.each([
+    [400, "CNPJ inválido."],
+    [404, "Empresa não encontrada."],
+    [422, "A empresa não está ativa."],
+    [503, "Não foi possível consultar o CNPJ agora."],
+  ])("keeps company values and does not advance after lookup HTTP %i", async (status, message) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ message }, { status }));
+    render(<TenantOnboarding />);
+    fillStep({ "CNPJ":"00000000000191", "Razão social":"Valor preservado" });
+
+    fireEvent.click(screen.getByRole("button", { name:"Consultar CNPJ" }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(message);
+    expect(screen.getByRole("heading", { name:"Dados da empresa" })).toBeDefined();
+    expect((screen.getByLabelText("Razão social") as HTMLInputElement).value).toBe("Valor preservado");
+  });
   it.each([
     ["minimum of 12 characters", "Aa1!curta"],
     ["an uppercase character", "senhasegura123!"],
