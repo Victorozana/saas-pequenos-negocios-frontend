@@ -2,7 +2,7 @@
 
 ## Gate Check Commands
 
-- **Quick**: `npm run test -- --runInBand`
+- **Quick**: `npm run test`
 - **Build**: `npm run test && npm run typecheck && npm run lint && npm run build`
 
 ## Test Coverage Matrix
@@ -10,8 +10,8 @@
 | Layer | Tasks | Tests | Gate |
 | --- | --- | --- | --- |
 | Contract helpers | T1 | `src/lib/onboarding/tenant-onboarding.test.ts` | Quick |
-| BFF routes | T2, T8 | `src/app/api/tenants/register/route.test.ts`, `src/app/api/auth/email-verifications/route.test.ts` | Quick |
-| Onboarding UI | T3, T4, T7, T9 | `src/components/onboarding/tenant-onboarding.test.tsx` | Quick |
+| BFF routes | T2, T8, T11 | `src/app/api/tenants/register/route.test.ts`, `src/app/api/auth/email-verifications/route.test.ts` | Quick |
+| Onboarding UI | T3, T4, T7, T9, T12, T13 | `src/components/onboarding/tenant-onboarding.test.tsx` | Quick |
 | Public navigation | T5, T10 | `src/app/login/page.test.tsx` | Quick |
 | Release validation | T6 | all feature tests | Build |
 
@@ -24,6 +24,8 @@ T1 → T3 → T4
 T3 → T5 → T6 → T8
 
 T6 → T10
+
+T10 → T11 → T12 → T13
 
 ## Task Breakdown
 
@@ -104,3 +106,26 @@ T6 → T10
 **Tests**: `src/app/login/page.test.tsx`
 **Gate**: Quick
 - **Done when**: the login page test proves no link targets an unavailable module route. Verified: 2/2 login page tests pass.
+
+## Phase 5: Critical-path test remediation
+
+### T11: Lock the confirmation proxy URL and upstream error contract ✅
+
+**Depends on**: T10
+**Tests**: `src/app/api/auth/email-verifications/route.test.ts`
+**Gate**: Quick
+- **Done when**: route tests assert the exact upstream URL, prove the token is absent from its path, query and fragment, and prove non-204 upstream responses remain safe failures instead of becoming 204 success. Verified: 4/4 route tests and 71/71 repository tests pass.
+
+### T12: Prove the complete UI payload and password policy
+
+**Depends on**: T11
+**Tests**: `src/components/onboarding/tenant-onboarding.test.tsx`
+**Gate**: Quick
+- **Done when**: component tests assert every generated `RegisterTenantRequest` field and a non-empty `Idempotency-Key`, reject each missing password-policy conjunct independently, and prove the accessible error association with the password field.
+
+### T13: Prove registration success-response edge states
+
+**Depends on**: T12
+**Tests**: `src/components/onboarding/tenant-onboarding.test.tsx`
+**Gate**: Quick
+- **Done when**: component tests prove a 201 response without a token and a 201 response with an invalid body each show the specified safe message, retain applicable non-sensitive values, and do not advance to email confirmation.
