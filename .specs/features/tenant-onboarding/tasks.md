@@ -52,3 +52,33 @@
 - **Tests**: all feature tests
 - **Gate**: Build
 - **Done when**: test, typecheck, lint, build and desktop/mobile visual checks pass. Verified on 2026-08-13: 59/59 tests passed; typecheck, lint and production build passed; `/login` and `/cadastro` were checked at desktop and 390 px mobile widths without horizontal overflow.
+
+## Phase 4: Validation remediation
+
+### T7: Cover registration loading and recoverable errors ✅
+
+- **Depends on**: T6
+- **Tests**: `src/components/onboarding/tenant-onboarding.test.tsx`
+- **Gate**: Quick
+- **Done when**: component tests assert disabled loading feedback, safe 400/422/409/5xx registration messages, and retained non-sensitive values after a recoverable failure. Verified: 8/8 component tests pass.
+
+### T8: Cover malformed successful registration responses
+
+- **Depends on**: T6
+- **Tests**: `src/app/api/tenants/register/route.test.ts`
+- **Gate**: Quick
+- **Done when**: the BFF test proves a 201 response with an invalid body returns the specified safe 502 message and does not return a token.
+
+### T9: Cover confirmation-token containment and failure recovery
+
+- **Depends on**: T7
+- **Tests**: `src/components/onboarding/tenant-onboarding.test.tsx`
+- **Gate**: Quick
+- **Done when**: component tests prove the verification token is absent from browser URL and persistent storage, and a failed confirmation displays a safe message without leaving the confirmation step.
+
+### T10: Cover exclusion of unavailable public links
+
+- **Depends on**: T6
+- **Tests**: `src/app/login/page.test.tsx`
+- **Gate**: Quick
+- **Done when**: the login page test proves no link targets an unavailable module route.
