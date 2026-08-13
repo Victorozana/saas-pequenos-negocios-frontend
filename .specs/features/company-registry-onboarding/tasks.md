@@ -39,7 +39,7 @@ T6 → T7
 **Commit**: `fix(cnpj): align company lookup eligibility`
 - **Done when**: tests prove invalid input does not call the gateway, any active business CNAE is accepted, and failure categories map safely.
 
-### T2: Implement the configurable BrasilAPI gateway
+### T2: Implement the configurable BrasilAPI gateway ✅
 
 **Depends on**: T1
 **Requirements**: CNPJ-002, CNPJ-004, CNPJ-006, CNPJ-011
