@@ -16,6 +16,9 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/components/dashboard/agenda-today", () => ({
   AgendaToday: () => <div>Agenda de hoje carregada</div>,
 }));
+vi.mock("@/components/dashboard/dashboard-metrics", () => ({
+  DashboardMetrics: () => <div>Resumo executivo de métricas</div>,
+}));
 
 import DashboardPage from "./page";
 
@@ -42,6 +45,7 @@ describe("DashboardPage", () => {
 
     expect(screen.getByRole("heading", { name: "Olá, Vitória." })).toBeTruthy();
     expect(screen.getAllByText("Admin").length).toBeGreaterThan(0);
+    expect(screen.getByText("Resumo executivo de métricas")).toBeTruthy();
     expect(screen.getByText("Agenda de hoje carregada")).toBeTruthy();
   });
 });
