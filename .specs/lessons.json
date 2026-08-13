@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "promote_threshold": 2,
+  "window_days": 45,
+  "quarantine_threshold": 2,
+  "next_id": 5,
+  "lessons": [
+    {
+      "id": "L-001",
+      "key": "surviving_mutant::assert every field value in request payloads assembled at the ui boundary",
+      "text": "Assert every field value in request payloads assembled at the UI boundary.",
+      "signal": "surviving_mutant",
+      "scope": "onboarding-ui",
+      "status": "candidate",
+      "features": [
+        "tenant-onboarding"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md:M1 (onboarding-ui)"
+      ],
+      "created": "2026-08-13T16:23:26Z",
+      "last_seen": "2026-08-13T16:23:26Z"
+    },
+    {
+      "id": "L-002",
+      "key": "surviving_mutant::test each validation rule conjunct with a sample that satisfies every other conjunct",
+      "text": "Test each validation-rule conjunct with a sample that satisfies every other conjunct.",
+      "signal": "surviving_mutant",
+      "scope": "validation",
+      "status": "candidate",
+      "features": [
+        "tenant-onboarding"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md:M2 (validation)"
+      ],
+      "created": "2026-08-13T16:23:27Z",
+      "last_seen": "2026-08-13T16:23:27Z"
+    },
+    {
+      "id": "L-003",
+      "key": "surviving_mutant::assert complete outbound urls for token bearing routes to prevent secret leakage through paths or queries",
+      "text": "Assert complete outbound URLs for token-bearing routes to prevent secret leakage through paths or queries.",
+      "signal": "surviving_mutant",
+      "scope": "bff-security",
+      "status": "candidate",
+      "features": [
+        "tenant-onboarding"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md:M4 (bff-security)"
+      ],
+      "created": "2026-08-13T16:23:27Z",
+      "last_seen": "2026-08-13T16:23:27Z"
+    },
+    {
+      "id": "L-004",
+      "key": "surviving_mutant::test upstream non success http responses separately from thrown network errors in every bff route",
+      "text": "Test upstream non-success HTTP responses separately from thrown network errors in every BFF route.",
+      "signal": "surviving_mutant",
+      "scope": "bff-routes",
+      "status": "candidate",
+      "features": [
+        "tenant-onboarding"
+      ],
+      "recurrence": 1,
+      "harmful": 0,
+      "evidence": [
+        "validation.md:M5 (bff-routes)"
+      ],
+      "created": "2026-08-13T16:23:27Z",
+      "last_seen": "2026-08-13T16:23:27Z"
+    }
+  ]
+}

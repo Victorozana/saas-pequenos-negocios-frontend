@@ -1,11 +1,16 @@
 # Tenant Onboarding Validation
 
-**Verdict: FAIL.** The implementation passes its build gate and the two targeted mutations were killed, but six acceptance criteria and one edge case have no spec-anchored test evidence.
+## Validation: Tenant Onboarding - FAIL
+
+**Verdict: FAIL.** The Build gate passes, but four of six critical-path mutants survive. Three acceptance criteria and both edge cases lack complete spec-anchored UI evidence.
 
 **Date**: 2026-08-13
 **Spec**: `.specs/features/tenant-onboarding/spec.md`
-**Diff range**: `538090a..e058f12`
-**Verifier**: independent sub-agent (author ≠ verifier)
+**Requested diff range**: `538090a..ee56c72`
+**Validated feature range**: `538090a^..ee56c72` (`f330738..ee56c72`)
+**Verifier**: independent sub-agent (author != verifier)
+
+The requested range is off by one: `538090a` is the first onboarding commit and contains the contract helpers, BFF routes, tests, spec, design, and tasks. The validated range starts at its parent so T1 and T2 are included. Evidence and quality review are limited to onboarding paths because unrelated agenda commits are interleaved in the range.
 
 ---
 
@@ -13,82 +18,91 @@
 
 | Task | Status | Notes |
 | --- | --- | --- |
-| T1–T5 | ✅ Done | Implementation and named tests exist. |
-| T6 | ⚠️ Partial | Build gate reproduced. Desktop/mobile check is recorded in `tasks.md`, but no repeatable visual-test evidence exists in the feature test suite. |
+| T1-T5 | Done | Named implementation and tests exist in the validated feature range. |
+| T6 | Done with non-repeatable visual evidence | The Build gate was reproduced. `tasks.md` records desktop and 390 px checks, but this verifier did not repeat interactive visual UAT. |
+| T7-T10 | Done | Remediation tests and implementation are committed through `ee56c72`. |
 
 ## Spec-Anchored Acceptance Criteria
 
-| Criterion | Spec-defined outcome | Evidence | Result |
+| Criterion | Spec-defined outcome | `file:line` + assertion | Result |
 | --- | --- | --- | --- |
-| Valid registration | POST forwards every required field with a non-empty idempotency key. | `src/app/api/tenants/register/route.test.ts:11` asserts the forwarded body and key; `:12-13` assert 201 and header token. | ✅ PASS |
-| Invalid password | Submission is blocked and an accessible field message is associated. | `src/components/onboarding/tenant-onboarding.test.tsx:13-17` asserts blocking and alert text; `src/components/onboarding/tenant-onboarding.tsx:14,20` provide `aria-describedby` and validation. | ✅ PASS |
-| Loading | Completion command is disabled and indicates loading while submitting. | No assertion. | ❌ GAP |
-| 400/422 | Safe Problem Details message preserves non-sensitive values. | `src/app/api/tenants/register/route.test.ts:16-20` asserts only 422 title forwarding. No UI retention assertion and no 400 evidence. | ❌ GAP |
-| 409 | Conflict message allows correction. | `src/lib/onboarding/tenant-onboarding.test.ts:54-59` checks only message text. No UI/correction-path assertion. | ❌ GAP |
-| Network/5xx | Safe unavailability message, without internal details. | `src/app/api/auth/email-verifications/route.test.ts:13-17` covers confirmation-network failure only. Registration client/5xx has no assertion. | ❌ GAP |
-| 201 with development token | Confirmation step appears; token is absent from URL, persistent storage, and logs. | `src/components/onboarding/tenant-onboarding.test.tsx:19-22` asserts confirmation and the JSON confirmation body; `src/app/api/tenants/register/route.test.ts:8-13` asserts header-token response. URL/storage/log absence is not asserted. | ❌ GAP |
-| Confirm email | JSON token POST and redirect to `/login` after 204. | `src/components/onboarding/tenant-onboarding.test.tsx:22` asserts body and `replace("/login")`; `src/app/api/auth/email-verifications/route.test.ts:6-10` asserts 204 forwarding. | ✅ PASS |
-| Confirmation failure | Safe message and confirmation step remains visible. | No assertion. | ❌ GAP |
-| Login entry | `/login` links to `/cadastro`. | `src/app/login/page.test.tsx:9-12` asserts exact link and href. | ✅ PASS |
-| No unavailable-feature links | No links to unavailable functionality. | No assertion that enumerates or excludes such links. | ❌ GAP |
+| Valid registration | POST every required `RegisterTenantRequest` value and a non-empty `Idempotency-Key`. | `src/app/api/tenants/register/route.test.ts:11` - `toHaveBeenCalledWith(... body: JSON.stringify(request), ... "Idempotency-Key": "idempotency-key")` proves forwarding of a supplied complete request. `src/components/onboarding/tenant-onboarding.test.tsx:45` asserts only `cnpj` and `addressStreet` from the UI-generated payload. Mutant M1 corrupted `adminEmail` and survived. | GAP |
+| Invalid password | Block submission for each missing password rule and associate an accessible field message. | `src/lib/onboarding/tenant-onboarding.test.ts:49-52` asserts valid, short, and no-number samples. `src/components/onboarding/tenant-onboarding.test.tsx:39` asserts only alert text for a short/no-uppercase password. It does not assert field association, and mutant M2 removed the uppercase rule without failure. | GAP |
+| Registration loading | Disable completion and announce loading while pending. | `src/components/onboarding/tenant-onboarding.test.tsx:94-95` - finds `button[name="Enviando..."]` and asserts `disabled === true`. | PASS |
+| Registration 400/422 | Show the safe Problem Details message and retain non-sensitive values. | `src/components/onboarding/tenant-onboarding.test.tsx:100-117` - parameterized exact 400/422 message assertions plus retained administrator and company values. | PASS |
+| Registration 409 | Show the conflict message and allow correction. | `src/components/onboarding/tenant-onboarding.test.tsx:100-117` - exact 409 message, retained values, and navigation back to editable company fields. | PASS |
+| Registration network/5xx | Show unavailability without internal details. | `src/components/onboarding/tenant-onboarding.test.tsx:100-112` asserts the exact safe 503 message; `:119-127` rejects with `"database endpoint leaked"` and asserts only the generic safe message. | PASS |
+| 201 with development token | Show confirmation while keeping the token out of URLs, persistent storage, and logs. | `src/components/onboarding/tenant-onboarding.test.tsx:45` asserts the confirmation action appears. `:63-67` excludes the token from the browser URL, local/session storage, storage writes, and console calls. `src/app/api/auth/email-verifications/route.test.ts:10` only uses `expect.stringContaining(...)` for the upstream URL; mutant M4 appended the token to that URL and survived. | GAP |
+| Confirm email | POST the token as JSON and redirect to `/login` only after 204. | `src/components/onboarding/tenant-onboarding.test.tsx:45` - exact JSON body, no early redirect, then `replace("/login")` after resolving 204. `src/app/api/auth/email-verifications/route.test.ts:9-10` asserts upstream 204 and exact JSON body. | PASS |
+| Confirmation failure | Show a safe message and remain on confirmation. | `src/components/onboarding/tenant-onboarding.test.tsx:70-83` - injects an internal 500 detail, asserts the exact safe alert, confirmation heading/button, and no redirect. | PASS |
+| Login entry | Link `/login` to `/cadastro`. | `src/app/login/page.test.tsx:11-13` - exact accessible link name and `href === "/cadastro"`. | PASS |
+| No unavailable links | Render no links to unavailable public modules. | `src/app/login/page.test.tsx:16-18` - enumerates all link targets and requires exactly `["/cadastro"]`. | PASS |
 
-**Status**: ❌ 4/11 criteria have complete spec-anchored evidence. No criterion was imprecise in the specification.
+**Status**: 8/11 acceptance criteria have complete spec-anchored evidence. No spec-precision gap was found.
 
 ## Edge Cases
 
-- [x] Missing development token after 201: `src/app/api/tenants/register/route.test.ts:22-25` asserts safe 502 response and no fabricated token.
-- [ ] Invalid success body: implemented at `src/app/api/tenants/register/route.ts:13`, but has no test assertion.
+| Edge case | Evidence | Result |
+| --- | --- | --- |
+| Missing development token after 201 | `src/app/api/tenants/register/route.test.ts:22-25` asserts 502 and the exact environment message with no fabricated token. No component assertion proves that this message is shown while the form does not advance. M3 confirms the BFF assertion is discriminating. | GAP |
+| Invalid successful response body | `src/app/api/tenants/register/route.test.ts:28-32` asserts 502 and the exact safe message without a token. No component assertion proves the safe message and unchanged registration step. | GAP |
 
 ## Gate Check
 
 - **Command**: `npm run test && npm run typecheck && npm run lint && npm run build`
-- **Result**: 59 passed, 0 failed, 0 skipped. Typecheck, lint, and production build passed.
-- **Test count before feature**: Not reproducible from the current checkout without installing dependencies for the historical revision.
-- **Test count after feature**: 59.
-- **Test integrity**: No skipped tests in the executed suite. The feature-added tests are present; this verifier found no evidence of deleted or weakened tests in the supplied range.
+- **Gate outcome**: PASS. 21 test files, 69 passed, 0 failed, 0 skipped. Typecheck, ESLint, and Next.js 16.2.11 production build passed.
+- **Before-feature baseline**: At `f330738`, 13 test files and 33 tests passed, with 0 failures.
+- **Current total**: 21 test files and 69 tests passed.
+- **Delta**: +8 test files and +36 tests across the complete historical range. The range contains unrelated agenda work, so this is a repository-level integrity delta, not an onboarding-only attribution.
+- **Integrity**: No skips, deletions, or weakened assertions were found in the onboarding diff. New assertions remain too shallow in the survivor areas below.
 
 ## Discrimination Sensor
 
-An isolated temporary git worktree was created at `HEAD`. The real-tree porcelain was empty before and after the sensor. The temporary worktree was removed from Git after execution; a leftover untracked temporary directory could not be deleted by the environment policy and contains no repository changes.
+The sensor ran only in `C:\Users\victo\AppData\Local\Temp\codex-tenant-onboarding-ee56c72`, a detached temporary worktree. The real-tree porcelain was empty before the sensor and empty after cleanup. The scratch worktree and its directory were removed; no stash was used.
 
-| Mutation | File:line | Fault | Killed? |
-| --- | --- | --- | --- |
-| 1 | `src/app/api/tenants/register/route.ts:16` | Returned `"mutated-token"` instead of the upstream header token. | ✅ `route.test.ts:13` failed. |
-| 2 | `src/components/onboarding/tenant-onboarding.tsx:21` | Redirected successful verification to `/dashboard` instead of `/login`. | ✅ `tenant-onboarding.test.tsx:22` failed. |
+| Mutation | File:line | Behavior fault | Targeted result | Killed? |
+| --- | --- | --- | --- | --- |
+| M1 | `src/components/onboarding/tenant-onboarding.tsx:20` | Override the submitted administrator email with `mutated@example.invalid`. | Component suite: 10 passed. | SURVIVED |
+| M2 | `src/lib/onboarding/tenant-onboarding.ts:16` | Remove the uppercase-character requirement from password validation. | Helper + component suites: 14 passed. | SURVIVED |
+| M3 | `src/app/api/tenants/register/route.ts:15` | Accept a 201 response without the development verification header. | Registration route test failed at `src/app/api/tenants/register/route.test.ts:24`, expected 502 and received 201. | KILLED |
+| M4 | `src/app/api/auth/email-verifications/route.ts:11` | Append the verification token to the upstream confirmation URL. | Confirmation route + component suites: 12 passed. | SURVIVED |
+| M5 | `src/app/api/auth/email-verifications/route.ts:12` | Treat every upstream HTTP error as 204 success. | Confirmation route + component suites: 12 passed. | SURVIVED |
+| M6 | `src/app/login/page.tsx:96` | Add an unavailable `/recuperar-senha` public link. | Login test failed at `src/app/login/page.test.tsx:18`, which received two links instead of only `/cadastro`. | KILLED |
 
-**Sensor depth**: lightweight. **Result**: 2/2 killed, PASS.
-
-## Interactive UAT / Visual Validation
-
-Not independently performed in this verifier pass. `tasks.md` records prior desktop and 390 px checks, but no screenshot, automated viewport assertion, or user UAT result is retained as evidence.
+**Sensor depth**: critical-path manual mutation, 6 targeted behavior mutations.
+**Sensor outcome**: 2/6 killed, 4/6 survived. FAIL.
 
 ## Code Quality
 
 | Principle | Status |
 | --- | --- |
-| Minimum code; no scope creep; surgical changes | ✅ |
-| Matches local patterns | ✅ |
-| Tests map to claimed requirements | ⚠️ Partial: several criteria are unclaimed. |
-| Spec-anchored outcome values match where asserted | ✅ |
-| Per-layer coverage expectation | ❌ Missing UI error/loading and security-observability coverage. |
-| Documented guidelines followed | ✅ `C:\Users\victo\.agents\skills\tlc-spec-driven\references\coding-principles.md` |
+| Minimum and surgical implementation | PASS |
+| No unrelated scope in onboarding paths | PASS |
+| Matches the documented Next.js 16 route-handler and client-boundary conventions | PASS |
+| Spec-anchored assertions match exact outcomes where present | PASS |
+| Payload/conjunction rule | FAIL: UI payload values and every password-rule conjunct are not independently asserted. |
+| Per-layer route coverage | FAIL: confirmation route tests omit upstream HTTP error behavior and exact URL token exclusion. |
+| Every onboarding test maps to an AC, edge case, or task done-when | PASS |
+| Documented guidelines | PASS: workspace `AGENTS.md` and `references/coding-principles.md` were applied. |
 
 ## Requirement Traceability Update
 
-| Requirement | Previous | Validation result |
+| Requirement | Spec status | Validation result |
 | --- | --- | --- |
-| ONBOARD-01 | Verified | ❌ Needs tests for loading, 400/422 retention, 409 correction, and registration unavailable states. |
-| ONBOARD-02 | Verified | ❌ Needs tests for token non-disclosure, confirmation failure, and invalid success body. |
-| ONBOARD-03 | Verified | ❌ Needs exclusion test for unavailable-feature links. |
-| ONBOARD-04 | Verified | ✅ Verified. |
+| ONBOARD-01 | Verified | Needs tests for the complete UI-generated payload and each password-policy conjunct/accessibility association. |
+| ONBOARD-02 | Verified | Needs exact upstream URL non-disclosure, upstream HTTP failure, and UI edge-response tests. |
+| ONBOARD-03 | Verified | Verified: unavailable-link exclusion is discriminating. |
+| ONBOARD-04 | Verified | Verified: `/login` links to `/cadastro`. |
 
 ## Ranked Gaps
 
-1. **Major, ONBOARD-01**: Add UI tests for loading/disabled completion and every registration error branch, including value preservation and 409 recovery.
-2. **Major, ONBOARD-02**: Add tests proving the token is never sent to navigation, persistent storage, or logging; test failed confirmation stays on the confirmation step.
-3. **Major, edge case**: Test malformed 201 response handling.
-4. **Minor, ONBOARD-03/T6**: Add an explicit unavailable-link exclusion test and reproducible desktop/mobile visual evidence.
+1. **Major, token security**: M4 survived. Assert the complete upstream confirmation URL so a token in any URL fails the route test.
+2. **Major, confirmation error behavior**: M5 survived. Add route tests for upstream non-204 HTTP responses and prove they cannot become success.
+3. **Major, registration payload integrity**: M1 survived. Assert every UI-generated `RegisterTenantRequest` value, not two representative fields.
+4. **Major, password policy/accessibility**: M2 survived. Test each password-rule conjunct independently and assert the alert is associated with the password field.
+5. **Major, edge-case UI state**: Add component assertions for missing-token and malformed-success responses, including the exact safe message and no step advancement.
+6. **Minor, visual reproducibility**: Preserve repeatable desktop/mobile UAT evidence if T6 is expected to be independently auditable.
 
 ## Summary
 
-**Overall**: ❌ Not ready to mark complete under the specification-driven release gate. The build is healthy and the sensor demonstrates two high-risk happy-path assertions are discriminating. The missing acceptance-criterion coverage must be added and independently re-verified.
+**Overall**: FAIL. The implementation builds and the main happy/error paths execute, but the critical security and payload assertions do not reliably detect four behavior regressions. Fix the ranked gaps and run a fresh independent verification.
