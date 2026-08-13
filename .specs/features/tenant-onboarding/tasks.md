@@ -98,9 +98,9 @@ T6 → T10
 **Gate**: Quick
 - **Done when**: component tests prove the verification token is absent from browser URL, persistent storage and logs, and a failed confirmation displays a safe message without leaving the confirmation step. Verified: 10/10 component tests pass.
 
-### T10: Cover exclusion of unavailable public links
+### T10: Cover exclusion of unavailable public links ✅
 
 **Depends on**: T6
 **Tests**: `src/app/login/page.test.tsx`
 **Gate**: Quick
-- **Done when**: the login page test proves no link targets an unavailable module route.
+- **Done when**: the login page test proves no link targets an unavailable module route. Verified: 2/2 login page tests pass.
