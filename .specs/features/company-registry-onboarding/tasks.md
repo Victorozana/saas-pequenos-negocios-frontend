@@ -75,7 +75,7 @@ T6 → T7
 **Commit**: `feat(onboarding): prefill company data by cnpj`
 - **Done when**: lookup loading, exact population, editing, preservation and failure states match the spec.
 
-### T6: Extend the authenticated route boundary
+### T6: Extend the authenticated route boundary ✅
 
 **Depends on**: T3
 **Requirements**: CNPJ-012, CNPJ-013
