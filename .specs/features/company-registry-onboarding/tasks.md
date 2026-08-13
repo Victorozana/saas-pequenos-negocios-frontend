@@ -30,7 +30,7 @@ T6 → T7
 
 ## Task Breakdown
 
-### T1: Correct company lookup semantics
+### T1: Correct company lookup semantics ✅
 
 **Depends on**: none
 **Requirements**: CNPJ-001, CNPJ-003, CNPJ-004, CNPJ-005, CNPJ-006
