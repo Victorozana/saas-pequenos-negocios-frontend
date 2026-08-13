@@ -24,6 +24,12 @@ describe("AgendaToday", () => {
       Response.json({
         appointments: [
           {
+            id: "appointment-2",
+            type: "Remote",
+            startTime: "2026-08-12T15:00:00.000Z",
+            endTime: "2026-08-12T16:00:00.000Z",
+          },
+          {
             id: "appointment-1",
             type: "OnSite",
             startTime: "2026-08-12T13:00:00.000Z",
@@ -39,6 +45,14 @@ describe("AgendaToday", () => {
     expect(screen.getByText("Carregando agenda…")).toBeTruthy();
     expect(await screen.findByText("OnSite")).toBeTruthy();
     expect(screen.getByText("Rua das Flores, 10")).toBeTruthy();
+    expect(screen.getByText("10:00 – 11:00")).toBeTruthy();
+    expect(screen.getByText("12:00 – 13:00")).toBeTruthy();
+    expect(screen.queryByText("Remote")).toBeTruthy();
+    const agendaText = screen.getByRole("list").textContent ?? "";
+    expect(agendaText.indexOf("OnSite")).toBeLessThan(agendaText.indexOf("Remote"));
+    expect(
+      screen.getByText("Remote").parentElement?.parentElement?.textContent,
+    ).not.toContain("Rua das Flores, 10");
   });
 
   it("shows the no-appointments CTA without a new route", async () => {

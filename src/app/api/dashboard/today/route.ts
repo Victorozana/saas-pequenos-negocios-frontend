@@ -54,7 +54,16 @@ export async function handleTodayAgenda(
   loadAppointments: AppointmentLoader = fetchTodayAppointments,
 ): Promise<NextResponse> {
   if (!accessToken) {
-    return NextResponse.json({ message: EXPIRED_SESSION_MESSAGE }, { status: 401 });
+    const response = NextResponse.json(
+      { message: EXPIRED_SESSION_MESSAGE },
+      { status: 401 },
+    );
+    response.cookies.set(
+      SESSION_COOKIE_NAME,
+      "",
+      expiredSessionCookieOptions(),
+    );
+    return response;
   }
 
   try {

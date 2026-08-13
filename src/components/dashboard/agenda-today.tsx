@@ -69,7 +69,13 @@ export function AgendaToday() {
         if (active) {
           setState({
             kind: "ready",
-            appointments: (body as { appointments: TodayAppointment[] }).appointments,
+            appointments: (body as { appointments: TodayAppointment[] }).appointments
+              .slice()
+              .sort(
+                (first, second) =>
+                  new Date(first.startTime).getTime() -
+                  new Date(second.startTime).getTime(),
+              ),
           });
         }
       } catch {

@@ -53,6 +53,13 @@ describe("today agenda BFF route", () => {
     await expect(response.json()).resolves.toEqual({ user, appointments: [] });
   });
 
+  it("expires a missing local session cookie", async () => {
+    const response = await handleTodayAgenda(undefined);
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
+
   it("maps backend and network failures to a safe message", async () => {
     const response = await handleTodayAgenda(
       "private-token",
@@ -68,19 +75,22 @@ describe("today agenda BFF route", () => {
     });
   });
 
-  it("expires the cookie when the backend reports an expired session", async () => {
-    const response = await handleTodayAgenda(
-      "expired-token",
-      async () => {
-        throw new AuthBackendError(401, "Sua sessão expirou. Entre novamente.");
-      },
-      vi.fn(),
-    );
+  it.each([401, 403, 404])(
+    "expires the cookie when the backend rejects a session with %i",
+    async (status) => {
+      const response = await handleTodayAgenda(
+        "expired-token",
+        async () => {
+          throw new AuthBackendError(status, "Backend session rejection");
+        },
+        vi.fn(),
+      );
 
-    expect(response.status).toBe(401);
-    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
-    await expect(response.json()).resolves.toEqual({
-      message: "Sua sessão expirou. Entre novamente.",
-    });
-  });
+      expect(response.status).toBe(401);
+      expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+      await expect(response.json()).resolves.toEqual({
+        message: "Sua sessão expirou. Entre novamente.",
+      });
+    },
+  );
 });
