@@ -64,6 +64,7 @@ T2 → T3
 
 ### T3: Compose dashboard as an operational landing page
 
+**Status**: Completed
 **What**: Replace placeholder dashboard content with person-focused identification and the agenda block.
 **Where**: `src/app/dashboard/page.tsx`
 **Depends on**: T2
