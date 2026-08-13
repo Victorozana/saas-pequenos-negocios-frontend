@@ -6,6 +6,34 @@ const { replace } = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace }) }));
 import { TenantOnboarding } from "./tenant-onboarding";
 
+const expectedRegistrationRequest = {
+  cnpj: "1",
+  companyName: "Nexo",
+  tradeName: "Nexo",
+  legalNature: "LTDA",
+  primaryCnae: "1",
+  categoryId: 10,
+  email: "e@n.com",
+  phone: "1",
+  addressStreet: "Rua",
+  addressNumber: "1",
+  addressComplement: "-",
+  addressNeighborhood: "Centro",
+  addressCity: "SP",
+  addressState: "SP",
+  addressZipCode: "1",
+  stateRegistration: "ISENTO",
+  municipalRegistration: "1",
+  isTaxExempt: false,
+  taxRegime: "SimplesNacional",
+  fiscalEmail: "f@n.com",
+  adminName: "Admin",
+  adminCpf: "1",
+  adminEmail: "a@n.com",
+  adminPassword: "SenhaSegura123!",
+  isLegalRepresentative: false,
+};
+
 function fillStep(fields: Record<string, string>) { Object.entries(fields).forEach(([label, value]) => fireEvent.change(screen.getByLabelText(label), { target: { value } })); }
 
 function fillCompanyStep() {
@@ -32,17 +60,34 @@ function reachRegistrationStep() {
 
 describe("TenantOnboarding", () => {
   afterEach(() => { cleanup(); vi.restoreAllMocks(); replace.mockReset(); window.history.replaceState({}, "", "/"); localStorage.clear(); sessionStorage.clear(); });
-  it("blocks an administrator password that does not meet the policy", async () => {
+  it.each([
+    ["minimum of 12 characters", "Aa1!curta"],
+    ["an uppercase character", "senhasegura123!"],
+    ["a lowercase character", "SENHASEGURA123!"],
+    ["a number", "SenhaSeguraABC!"],
+    ["a special character", "SenhaSegura1234"],
+  ])("blocks a password without %s and associates the error with the field", async (_rule, password) => {
     render(<TenantOnboarding />); fillStep({ "CNPJ":"1", "Razão social":"Nexo", "Nome fantasia":"Nexo", "Natureza jurídica":"LTDA", "CNAE principal":"1", "E-mail da empresa":"e@n.com", "Telefone":"1" }); fireEvent.change(screen.getByLabelText("Categoria"), { target:{value:"10"} }); fireEvent.click(screen.getByRole("button", {name:"Continuar"}));
     fillStep({ "Logradouro":"Rua", "Número":"1", "Complemento":"-", "Bairro":"Centro", "Cidade":"SP", "UF":"SP", "CEP":"1", "Inscrição estadual":"ISENTO", "Inscrição municipal":"1", "E-mail fiscal":"f@n.com" }); fireEvent.change(screen.getByLabelText("Regime tributário"), {target:{value:"SimplesNacional"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"}));
-    fillStep({ "Nome do administrador":"Admin", "CPF":"1", "E-mail do administrador":"a@n.com", "Senha":"curta1!" }); fireEvent.click(screen.getByRole("button", {name:"Concluir cadastro"}));
-    expect((await screen.findByRole("alert")).textContent).toContain("ao menos 12 caracteres");
+    fillStep({ "Nome do administrador":"Admin", "CPF":"1", "E-mail do administrador":"a@n.com", "Senha":password }); fireEvent.click(screen.getByRole("button", {name:"Concluir cadastro"}));
+    const alert = await screen.findByRole("alert");
+    const passwordField = screen.getByLabelText("Senha");
+    expect(alert.textContent).toBe("A senha deve ter ao menos 12 caracteres, com maiúscula, minúscula, número e caractere especial.");
+    expect(passwordField.getAttribute("aria-describedby")).toBe(alert.id);
+    expect(passwordField.getAttribute("aria-invalid")).toBe("true");
   });
   it("confirms after registration without placing the token in navigation", async () => {
     let resolveVerification: ((response: Response) => void) | undefined;
     const fetcher = vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(Response.json({ message:"Criado", token:"verification-token" }, {status:201})).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveVerification = resolve; }));
     render(<TenantOnboarding />); fillStep({ "CNPJ":"1", "Razão social":"Nexo", "Nome fantasia":"Nexo", "Natureza jurídica":"LTDA", "CNAE principal":"1", "E-mail da empresa":"e@n.com", "Telefone":"1" }); fireEvent.change(screen.getByLabelText("Categoria"), {target:{value:"10"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"})); fillStep({ "Logradouro":"Rua", "Número":"1", "Complemento":"-", "Bairro":"Centro", "Cidade":"SP", "UF":"SP", "CEP":"1", "Inscrição estadual":"ISENTO", "Inscrição municipal":"1", "E-mail fiscal":"f@n.com" }); fireEvent.change(screen.getByLabelText("Regime tributário"), {target:{value:"SimplesNacional"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"})); fillStep({ "Nome do administrador":"Admin", "CPF":"1", "E-mail do administrador":"a@n.com", "Senha":"SenhaSegura123!" }); fireEvent.click(screen.getByRole("button", {name:"Concluir cadastro"}));
-    await screen.findByRole("button", {name:"Confirmar e-mail"}); expect(fetcher.mock.calls[0][0]).toBe("/api/tenants/register"); expect((fetcher.mock.calls[0][1] as RequestInit).body).toContain('"cnpj":"1"'); expect((fetcher.mock.calls[0][1] as RequestInit).body).toContain('"addressStreet":"Rua"'); fireEvent.click(screen.getByRole("button", {name:"Confirmar e-mail"})); await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2)); expect(fetcher).toHaveBeenLastCalledWith("/api/auth/email-verifications", expect.objectContaining({ body: JSON.stringify({token:"verification-token"}) })); expect(replace).not.toHaveBeenCalled(); resolveVerification?.(new Response(null,{status:204})); await waitFor(()=>expect(replace).toHaveBeenCalledWith("/login"));
+    await screen.findByRole("button", {name:"Confirmar e-mail"});
+    expect(fetcher.mock.calls[0][0]).toBe("/api/tenants/register");
+    const registrationInit = fetcher.mock.calls[0][1] as RequestInit;
+    const registrationHeaders = registrationInit.headers as Record<string, string>;
+    expect(JSON.parse(String(registrationInit.body))).toEqual(expectedRegistrationRequest);
+    expect(registrationHeaders["Idempotency-Key"]).toEqual(expect.any(String));
+    expect(registrationHeaders["Idempotency-Key"].trim()).not.toBe("");
+    fireEvent.click(screen.getByRole("button", {name:"Confirmar e-mail"})); await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2)); expect(fetcher).toHaveBeenLastCalledWith("/api/auth/email-verifications", expect.objectContaining({ body: JSON.stringify({token:"verification-token"}) })); expect(replace).not.toHaveBeenCalled(); resolveVerification?.(new Response(null,{status:204})); await waitFor(()=>expect(replace).toHaveBeenCalledWith("/login"));
   });
 
   it("keeps the verification token out of the URL, persistent storage, and logs", async () => {

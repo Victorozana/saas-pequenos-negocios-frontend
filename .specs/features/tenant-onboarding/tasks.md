@@ -116,12 +116,12 @@ T10 → T11 → T12 → T13
 **Gate**: Quick
 - **Done when**: route tests assert the exact upstream URL, prove the token is absent from its path, query and fragment, and prove non-204 upstream responses remain safe failures instead of becoming 204 success. Verified: 4/4 route tests and 71/71 repository tests pass.
 
-### T12: Prove the complete UI payload and password policy
+### T12: Prove the complete UI payload and password policy ✅
 
 **Depends on**: T11
 **Tests**: `src/components/onboarding/tenant-onboarding.test.tsx`
 **Gate**: Quick
-- **Done when**: component tests assert every generated `RegisterTenantRequest` field and a non-empty `Idempotency-Key`, reject each missing password-policy conjunct independently, and prove the accessible error association with the password field.
+- **Done when**: component tests assert every generated `RegisterTenantRequest` field and a non-empty `Idempotency-Key`, reject each missing password-policy conjunct independently, and prove the accessible error association with the password field. Verified: 14/14 component tests and 75/75 repository tests pass.
 
 ### T13: Prove registration success-response edge states
 
