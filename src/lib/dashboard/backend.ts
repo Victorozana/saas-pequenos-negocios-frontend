@@ -72,3 +72,39 @@ export async function fetchDashboardSummary(
 
   return data;
 }
+
+export async function fetchPerformanceReport(
+  accessToken: string,
+  fetcher: Fetcher = fetch,
+  baseUrl = getApiBaseUrl(),
+): Promise<Response> {
+  let response: Response;
+  try {
+    response = await fetcher(
+      `${normalizeApiBaseUrl(baseUrl)}/api/v1/dashboard/report`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      },
+    );
+  } catch {
+    throw new AuthBackendError(
+      503,
+      "Não foi possível exportar o relatório agora. Tente novamente.",
+    );
+  }
+
+  if (!response.ok) {
+    throw new AuthBackendError(
+      response.status,
+      response.status === 401 || response.status === 403
+        ? "Sua sessão expirou. Entre novamente."
+        : "Não foi possível exportar o relatório agora. Tente novamente.",
+    );
+  }
+
+  return response;
+}
