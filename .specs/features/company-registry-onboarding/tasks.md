@@ -84,7 +84,7 @@ T6 → T7
 **Commit**: `fix(auth): protect all operational routes`
 - **Done when**: every current/future operational root and nested path has the optimistic session boundary.
 
-### T7: Validate company registry onboarding independently
+### T7: Validate company registry onboarding independently ✅
 
 **Depends on**: T5, T6
 **Requirements**: CNPJ-001..CNPJ-013
@@ -97,6 +97,6 @@ T6 → T7
 
 | Requirements | Tasks | Status |
 | --- | --- | --- |
-| CNPJ-001..CNPJ-006 | T1, T2, T3, T4, T7 | Planned |
-| CNPJ-007..CNPJ-011 | T4, T5, T7 | Planned |
-| CNPJ-012..CNPJ-013 | T6, T7 | Planned |
+| CNPJ-001..CNPJ-006 | T1, T2, T3, T4, T7 | Verified |
+| CNPJ-007..CNPJ-011 | T4, T5, T7 | Verified |
+| CNPJ-012..CNPJ-013 | T6, T7 | Verified |
