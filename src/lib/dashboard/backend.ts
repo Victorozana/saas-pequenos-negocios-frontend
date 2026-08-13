@@ -1,8 +1,18 @@
-import type { components } from "@/lib/api/generated/schema";
 import { normalizeApiBaseUrl } from "@/lib/api/client";
 import { AuthBackendError, getApiBaseUrl } from "@/lib/auth/backend";
 
-export type DashboardSummary = components["schemas"]["DashboardSummaryDto"];
+export type ConversionMetrics = {
+  totalQuotations: number;
+  approvedQuotations: number;
+  conversionRatePercentage: number;
+};
+
+export type DashboardSummary = {
+  totalReceivedAmount: number;
+  totalReceivableAmount: number;
+  pendingWorkOrdersCount: number;
+  conversionMetrics: ConversionMetrics;
+};
 
 type Fetcher = (
   input: RequestInfo | URL,
