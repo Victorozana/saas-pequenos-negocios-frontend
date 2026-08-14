@@ -11,7 +11,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,42 +67,51 @@ export function CustomerList({
     return () => clearTimeout(timer);
   }, [search]);
 
-  const loadCustomers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const queryParams = new URLSearchParams();
-      if (debouncedSearch.trim()) queryParams.set("search", debouncedSearch.trim());
-      queryParams.set("page", page.toString());
-      queryParams.set("pageSize", "10");
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      try {
+        const queryParams = new URLSearchParams();
+        if (debouncedSearch.trim()) queryParams.set("search", debouncedSearch.trim());
+        queryParams.set("page", page.toString());
+        queryParams.set("pageSize", "10");
 
-      const response = await fetch(`/api/customers?${queryParams.toString()}`);
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          window.location.href = "/login";
+        const response = await fetch(`/api/customers?${queryParams.toString()}`);
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            window.location.href = "/login";
+            return;
+          }
+          const body = await response.json().catch(() => ({}));
+          if (isMounted) {
+            setError(
+              typeof body.message === "string"
+                ? body.message
+                : "Não foi possível carregar a lista de clientes agora. Tente novamente.",
+            );
+          }
           return;
         }
-        const body = await response.json().catch(() => ({}));
-        setError(
-          typeof body.message === "string"
-            ? body.message
-            : "Não foi possível carregar a lista de clientes agora. Tente novamente.",
-        );
-        return;
+
+        const resData = await response.json();
+        if (isMounted) {
+          setData(resData.customers);
+          setError(null);
+        }
+      } catch {
+        if (isMounted) {
+          setError("Não foi possível carregar a lista de clientes agora. Tente novamente.");
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-
-      const resData = await response.json();
-      setData(resData.customers);
-    } catch {
-      setError("Não foi possível carregar a lista de clientes agora. Tente novamente.");
-    } finally {
-      setLoading(false);
     }
-  }, [debouncedSearch, page]);
 
-  useEffect(() => {
-    loadCustomers();
-  }, [loadCustomers, refreshTrigger]);
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedSearch, page, refreshTrigger]);
 
   const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / data.pageSize)) : 1;
 

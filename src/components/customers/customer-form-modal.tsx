@@ -1,7 +1,7 @@
 "use client";
 
 import { Building2, LoaderCircle, User, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,60 +14,28 @@ interface CustomerFormModalProps {
   customerToEdit?: Customer | null;
 }
 
-export function CustomerFormModal({
-  isOpen,
+function CustomerFormContent({
   onClose,
   onSaved,
   customerToEdit = null,
-}: CustomerFormModalProps) {
-  const [docType, setDocType] = useState<"CPF" | "CNPJ">("CPF");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [documentValue, setDocumentValue] = useState("");
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [complement, setComplement] = useState("");
-  const [neighborhood, setNeighborhood] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zipCode, setZipCode] = useState("");
+}: Omit<CustomerFormModalProps, "isOpen">) {
+  const [docType, setDocType] = useState<"CPF" | "CNPJ">(
+    customerToEdit?.documentType === "CNPJ" ? "CNPJ" : "CPF",
+  );
+  const [name, setName] = useState(customerToEdit?.name || "");
+  const [phone, setPhone] = useState(customerToEdit?.phone || "");
+  const [email, setEmail] = useState(customerToEdit?.email || "");
+  const [documentValue, setDocumentValue] = useState(customerToEdit?.documentValue || "");
+  const [street, setStreet] = useState(customerToEdit?.street || "");
+  const [number, setNumber] = useState(customerToEdit?.number || "");
+  const [complement, setComplement] = useState(customerToEdit?.complement || "");
+  const [neighborhood, setNeighborhood] = useState(customerToEdit?.neighborhood || "");
+  const [city, setCity] = useState(customerToEdit?.city || "");
+  const [state, setState] = useState(customerToEdit?.state || "");
+  const [zipCode, setZipCode] = useState(customerToEdit?.zipCode || "");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (customerToEdit) {
-      setDocType(customerToEdit.documentType === "CNPJ" ? "CNPJ" : "CPF");
-      setName(customerToEdit.name || "");
-      setPhone(customerToEdit.phone || "");
-      setEmail(customerToEdit.email || "");
-      setDocumentValue(customerToEdit.documentValue || "");
-      setStreet(customerToEdit.street || "");
-      setNumber(customerToEdit.number || "");
-      setComplement(customerToEdit.complement || "");
-      setNeighborhood(customerToEdit.neighborhood || "");
-      setCity(customerToEdit.city || "");
-      setState(customerToEdit.state || "");
-      setZipCode(customerToEdit.zipCode || "");
-    } else {
-      setDocType("CPF");
-      setName("");
-      setPhone("");
-      setEmail("");
-      setDocumentValue("");
-      setStreet("");
-      setNumber("");
-      setComplement("");
-      setNeighborhood("");
-      setCity("");
-      setState("");
-      setZipCode("");
-    }
-    setError(null);
-  }, [customerToEdit, isOpen]);
-
-  if (!isOpen) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -297,7 +265,12 @@ export function CustomerFormModal({
               </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Input
+                placeholder="CEP"
+                value={zipCode}
+                onChange={(e) => setZipCode(e.target.value)}
+              />
               <Input
                 placeholder="Complemento (ex: Sala 10)"
                 value={complement}
@@ -357,5 +330,16 @@ export function CustomerFormModal({
         </form>
       </div>
     </div>
+  );
+}
+
+export function CustomerFormModal(props: CustomerFormModalProps) {
+  if (!props.isOpen) return null;
+
+  return (
+    <CustomerFormContent
+      key={props.customerToEdit ? props.customerToEdit.id : "new"}
+      {...props}
+    />
   );
 }
