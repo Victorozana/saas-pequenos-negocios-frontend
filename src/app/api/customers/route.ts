@@ -139,6 +139,13 @@ export async function handleCreateCustomer(
       return response;
     }
 
+    if (error instanceof AuthBackendError && error.status === 400) {
+      return NextResponse.json(
+        { message: error.message },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json(
       { message: SAFE_ERROR_MESSAGE },
       { status: statusFor(error) },

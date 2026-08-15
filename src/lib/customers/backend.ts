@@ -158,12 +158,20 @@ export async function createCustomer(
   }
 
   if (!response.ok) {
-    throw new AuthBackendError(
-      response.status,
-      response.status === 401 || response.status === 403
-        ? "Sua sessão expirou. Entre novamente."
-        : "Não foi possível cadastrar o cliente agora. Tente novamente.",
-    );
+    const problem = (await response.json().catch(() => ({}))) as {
+      title?: string;
+      message?: string;
+    };
+    const message =
+      typeof problem?.title === "string" && problem.title.trim()
+        ? problem.title
+        : typeof problem?.message === "string" && problem.message.trim()
+          ? problem.message
+          : response.status === 401 || response.status === 403
+            ? "Sua sessão expirou. Entre novamente."
+            : "Não foi possível cadastrar o cliente agora. Tente novamente.";
+
+    throw new AuthBackendError(response.status, message);
   }
 
   const data = (await response.json().catch(() => ({}))) as { id?: string; Id?: string };
@@ -205,11 +213,19 @@ export async function updateCustomer(
   }
 
   if (!response.ok) {
-    throw new AuthBackendError(
-      response.status,
-      response.status === 401 || response.status === 403
-        ? "Sua sessão expirou. Entre novamente."
-        : "Não foi possível atualizar o cliente agora. Tente novamente.",
-    );
+    const problem = (await response.json().catch(() => ({}))) as {
+      title?: string;
+      message?: string;
+    };
+    const message =
+      typeof problem?.title === "string" && problem.title.trim()
+        ? problem.title
+        : typeof problem?.message === "string" && problem.message.trim()
+          ? problem.message
+          : response.status === 401 || response.status === 403
+            ? "Sua sessão expirou. Entre novamente."
+            : "Não foi possível atualizar o cliente agora. Tente novamente.";
+
+    throw new AuthBackendError(response.status, message);
   }
 }
