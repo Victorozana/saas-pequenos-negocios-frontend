@@ -99,3 +99,112 @@ export async function fetchTodayAppointments(
       new Date(first.startTime).getTime() - new Date(second.startTime).getTime(),
   );
 }
+
+export type Appointment = {
+  id: string;
+  workOrderId?: string;
+  type: string;
+  startTime: string;
+  endTime: string;
+  address?: string;
+  notes?: string;
+  assignedToUserId?: string;
+};
+
+export type CreateAppointmentPayload = {
+  workOrderId?: string;
+  type: number;
+  startTime: string;
+  endTime: string;
+  address?: string;
+  notes?: string;
+  assignedToUserId?: string;
+};
+
+export type UpdateAppointmentPayload = {
+  startTime: string;
+  endTime: string;
+  assignedToUserId?: string;
+};
+
+export async function fetchAppointments(
+  accessToken: string,
+  params?: {
+    startDate?: string;
+    endDate?: string;
+    assignedToUserId?: string;
+    workOrderId?: string;
+  },
+  fetcher: Fetcher = fetch,
+  baseUrl = getApiBaseUrl(),
+): Promise<Appointment[]> {
+  const url = new URL("/api/v1/appointments", `${normalizeApiBaseUrl(baseUrl)}/`);
+  if (params) {
+    if (params.startDate) url.searchParams.append("startDate", params.startDate);
+    if (params.endDate) url.searchParams.append("endDate", params.endDate);
+    if (params.assignedToUserId) url.searchParams.append("assignedToUserId", params.assignedToUserId);
+    if (params.workOrderId) url.searchParams.append("workOrderId", params.workOrderId);
+  }
+
+  const response = await fetcher(url, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new AppointmentBackendError(response.status, "Failed to fetch appointments");
+  }
+
+  return response.json();
+}
+
+export async function createAppointment(
+  accessToken: string,
+  payload: CreateAppointmentPayload,
+  fetcher: Fetcher = fetch,
+  baseUrl = getApiBaseUrl(),
+): Promise<{ id: string }> {
+  const response = await fetcher(`${normalizeApiBaseUrl(baseUrl)}/api/v1/appointments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new AppointmentBackendError(response.status, data.error || "Failed to create appointment");
+  }
+
+  return response.json();
+}
+
+export async function updateAppointment(
+  accessToken: string,
+  id: string,
+  payload: UpdateAppointmentPayload,
+  fetcher: Fetcher = fetch,
+  baseUrl = getApiBaseUrl(),
+): Promise<void> {
+  const response = await fetcher(`${normalizeApiBaseUrl(baseUrl)}/api/v1/appointments/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new AppointmentBackendError(response.status, data.error || "Failed to update appointment");
+  }
+}

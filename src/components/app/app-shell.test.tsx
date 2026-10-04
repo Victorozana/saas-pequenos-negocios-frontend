@@ -30,9 +30,13 @@ describe("AppShell", () => {
     expect(
       screen.getByRole("link", { name: /Visão geral/ }).getAttribute("href"),
     ).toBe("/dashboard");
-    expect(screen.getByText("Clientes")).toBeTruthy();
-    expect(screen.getByText("Agenda")).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: /Clientes/ }).getAttribute("href"),
+    ).toBe("/clientes");
+    expect(
+      screen.getByRole("link", { name: /Agenda/ }).getAttribute("href"),
+    ).toBe("/agenda");
     expect(screen.queryByText("Financeiro")).toBeNull();
-    expect(screen.getAllByText("Em breve")).toHaveLength(2);
+    expect(screen.queryByText("Em breve")).toBeNull();
   });
 });

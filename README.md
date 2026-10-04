@@ -1,36 +1,79 @@
-# Nexo Local — frontend
+# Nexo Local — Frontend
 
-Frontend do SaaS de gestão para pequenos negócios locais, construído com Next.js, TypeScript, Tailwind CSS e Shadcn UI.
+Interface web do Nexo Local, um sistema de gestão voltado a pequenos negócios locais. O projeto permite acompanhar clientes, serviços, agenda, orçamentos, ordens de serviço e indicadores do dia.
 
-## Executar localmente
+## Tecnologias
 
-Pré-requisitos: Node.js e o backend disponível em `http://localhost:5050`.
+- Next.js 16, React 19 e TypeScript
+- Tailwind CSS e componentes Shadcn UI
+- Vitest e Testing Library
+- Integração tipada com a API via OpenAPI
 
-```powershell
-npm install
-Copy-Item .env.example .env.local
-npm run dev
-```
+## Pré-requisitos
 
-Acesse [http://localhost:3000](http://localhost:3000). A raiz redireciona para `/login`.
+- Node.js 20 ou superior
+- npm
+- Backend do projeto em execução — por padrão, em `http://localhost:5050`
 
-Se o backend usar outro endereço, altere `API_BASE_URL` em `.env.local`. Essa variável fica somente no servidor Next e não deve receber o prefixo `NEXT_PUBLIC_`.
+## Como executar
 
-## Verificações
+1. Instale as dependências:
 
-```powershell
-npm run test
-npm run typecheck
-npm run lint
-npm run build
-```
+   ```powershell
+   npm install
+   ```
 
-## Contrato da API
+2. Crie sua configuração local a partir do exemplo:
 
-Com o backend em execução na porta 5050, atualize os tipos gerados com:
+   ```powershell
+   Copy-Item .env.example .env.local
+   ```
+
+3. Inicie o ambiente de desenvolvimento:
+
+   ```powershell
+   npm run dev
+   ```
+
+4. Acesse [http://localhost:3000](http://localhost:3000). A página inicial direciona para `/login`.
+
+Caso a API esteja em outro endereço, ajuste `API_BASE_URL` em `.env.local`. Essa variável é lida somente no servidor Next.js; não use o prefixo `NEXT_PUBLIC_`. Não versione arquivos `.env.local`.
+
+## Scripts disponíveis
+
+| Comando | Descrição |
+| --- | --- |
+| `npm run dev` | Inicia o ambiente de desenvolvimento. |
+| `npm run build` | Gera a versão de produção. |
+| `npm run start` | Executa a versão de produção após o build. |
+| `npm run lint` | Executa a verificação de estilo. |
+| `npm run typecheck` | Valida os tipos TypeScript. |
+| `npm run test` | Executa os testes automatizados. |
+| `npm run generate:api` | Atualiza os tipos da API a partir do OpenAPI local. |
+
+## Atualização do contrato da API
+
+Com o backend em execução na porta 5050, execute:
 
 ```powershell
 npm run generate:api
 ```
 
-O token de acesso permanece em cookie `HttpOnly`. O backend atual não oferece refresh token; ao expirar, a pessoa precisa entrar novamente.
+O resultado é salvo em `src/lib/api/generated/schema.d.ts`. Sempre que o contrato do backend mudar, regenere esse arquivo antes de desenvolver a integração correspondente.
+
+## Autenticação
+
+O token de acesso é mantido em cookie `HttpOnly` pelo servidor. No estado atual da API, não há refresh token: quando a sessão expira, é necessário entrar novamente.
+
+## Verificação antes de contribuir
+
+```powershell
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+## Repositório relacionado
+
+O backend canônico está em `C:\\Users\\victo\\OneDrive\\Documentos\\projetos\\agendamento` e é a fonte de verdade para o contrato HTTP usado por esta aplicação.

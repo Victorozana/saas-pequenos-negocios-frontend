@@ -39,7 +39,7 @@ export const MODULES: readonly AppModule[] = [
     description: "Cadastro e histórico",
     href: "/clientes",
     permission: PERMISSIONS.customersRead,
-    available: false,
+    available: true,
   },
   {
     id: "services",
@@ -47,7 +47,7 @@ export const MODULES: readonly AppModule[] = [
     description: "Catálogo e preços",
     href: "/servicos",
     permission: PERMISSIONS.servicesRead,
-    available: false,
+    available: true,
   },
   {
     id: "sales",
@@ -55,7 +55,7 @@ export const MODULES: readonly AppModule[] = [
     description: "Propostas e ordens",
     href: "/orcamentos",
     permission: PERMISSIONS.salesRead,
-    available: false,
+    available: true,
   },
   {
     id: "appointments",
@@ -63,7 +63,7 @@ export const MODULES: readonly AppModule[] = [
     description: "Compromissos da equipe",
     href: "/agenda",
     permission: PERMISSIONS.appointmentsRead,
-    available: false,
+    available: true,
   },
   {
     id: "financial",
