@@ -50,9 +50,12 @@ function formatDate(dateString: string): string {
 
 const statusConfig: Record<QuotationStatus, { label: string; colorClass: string; icon: React.ElementType }> = {
   Draft: { label: "Rascunho", colorClass: "bg-slate-100 text-slate-700 border-slate-200", icon: FileText },
-  Sent: { label: "Enviado", colorClass: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock },
+  Pending: { label: "Pendente", colorClass: "bg-blue-50 text-blue-700 border-blue-200", icon: Clock },
   Approved: { label: "Aprovado", colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   Rejected: { label: "Rejeitado", colorClass: "bg-red-50 text-red-700 border-red-200", icon: XCircle },
+  Expired: { label: "Expirado", colorClass: "bg-amber-50 text-amber-700 border-amber-200", icon: Clock },
+  Canceled: { label: "Cancelado", colorClass: "bg-slate-100 text-slate-700 border-slate-200", icon: XCircle },
+  Converted: { label: "Convertido em OS", colorClass: "bg-violet-50 text-violet-700 border-violet-200", icon: BriefcaseBusiness },
 };
 
 export function QuotationList({
@@ -194,8 +197,8 @@ export function QuotationList({
               className="pl-9 bg-white border-slate-200"
             />
           </div>
-          <div className="flex bg-slate-100 p-1 rounded-lg">
-            {(["All", "Draft", "Sent", "Approved", "Rejected"] as const).map((status) => (
+          <div className="flex flex-wrap bg-slate-100 p-1 rounded-lg">
+            {(["All", "Draft", "Pending", "Approved", "Rejected", "Expired", "Canceled", "Converted"] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => {
@@ -306,11 +309,11 @@ export function QuotationList({
                           {quotation.customerName}
                         </div>
                         <div className="text-xs text-slate-400">
-                          {quotation.items.length} {quotation.items.length === 1 ? 'item' : 'itens'}
+                          {quotation.code}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-slate-500">
-                        {formatDate(quotation.createdAt)}
+                        {formatDate(quotation.issueDate)}
                       </td>
                       <td className="px-5 py-4 font-medium text-slate-900">
                         {formatCurrency(quotation.totalAmount)}
@@ -335,13 +338,13 @@ export function QuotationList({
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs text-slate-400 font-medium">Atualizar Status</DropdownMenuLabel>
-                            {quotation.status !== "Sent" && (
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(quotation.id, "Sent")}>
+                            {quotation.status === "Draft" && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(quotation.id, "Pending")}>
                                 <Clock className="mr-2 size-4 text-blue-500" />
-                                Marcar como Enviado
+                                Marcar como Pendente
                               </DropdownMenuItem>
                             )}
-                            {quotation.status !== "Approved" && (
+                            {quotation.status === "Pending" && (
                               <DropdownMenuItem onClick={() => handleUpdateStatus(quotation.id, "Approved")}>
                                 <CheckCircle2 className="mr-2 size-4 text-emerald-500" />
                                 Marcar como Aprovado
@@ -353,16 +356,10 @@ export function QuotationList({
                                 Gerar Ordem de Serviço (OS)
                               </DropdownMenuItem>
                             )}
-                            {quotation.status !== "Rejected" && (
+                            {quotation.status === "Pending" && (
                               <DropdownMenuItem onClick={() => handleUpdateStatus(quotation.id, "Rejected")}>
                                 <XCircle className="mr-2 size-4 text-red-500" />
                                 Marcar como Rejeitado
-                              </DropdownMenuItem>
-                            )}
-                            {quotation.status !== "Draft" && (
-                              <DropdownMenuItem onClick={() => handleUpdateStatus(quotation.id, "Draft")}>
-                                <FileText className="mr-2 size-4 text-slate-500" />
-                                Voltar para Rascunho
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>

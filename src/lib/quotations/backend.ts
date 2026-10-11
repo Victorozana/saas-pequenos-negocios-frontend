@@ -1,7 +1,16 @@
 import { normalizeApiBaseUrl } from "@/lib/api/client";
+import type { components } from "@/lib/api/generated/schema";
 import { AuthBackendError, getApiBaseUrl } from "@/lib/auth/backend";
 
-export type QuotationStatus = "Draft" | "Sent" | "Approved" | "Rejected";
+// The API enum is numbered from 1, in this order.
+export const QUOTATION_STATUSES = [
+  "Draft", "Pending", "Approved", "Rejected", "Expired", "Canceled", "Converted",
+] as const;
+export type QuotationStatus = (typeof QUOTATION_STATUSES)[number];
+
+export function isQuotationStatus(value: unknown): value is QuotationStatus {
+  return QUOTATION_STATUSES.some((status) => status === value);
+}
 
 export type QuotationItem = {
   id: string;
@@ -13,16 +22,9 @@ export type QuotationItem = {
   totalPrice: number;
 };
 
-export type Quotation = {
-  id: string;
-  customerId: string;
-  customerName: string;
+export type Quotation = Omit<components["schemas"]["QuotationListDto"], "status" | "totalAmount"> & {
   totalAmount: number;
   status: QuotationStatus;
-  validUntil: string;
-  notes: string | null;
-  items: QuotationItem[];
-  createdAt: string;
 };
 
 export type PaginatedQuotations = {
@@ -32,7 +34,13 @@ export type PaginatedQuotations = {
   pageSize: number;
 };
 
+type BackendQuotation = Omit<Quotation, "status"> & { status: number };
+type BackendPaginatedQuotations = Omit<PaginatedQuotations, "items"> & {
+  items: BackendQuotation[];
+};
+
 export type CreateQuotationItemPayload = {
+  serviceItemId: string | null;
   serviceName: string;
   unit: string;
   unitPrice: number;
@@ -41,10 +49,14 @@ export type CreateQuotationItemPayload = {
 };
 
 export type CreateQuotationPayload = {
+  code: string;
   customerId: string;
+  issueDate: string;
   validUntil: string;
-  notes?: string;
+  notes: string | null;
+  paymentTerms: string | null;
   items: CreateQuotationItemPayload[];
+  deposit: null;
 };
 
 type Fetcher = (
@@ -63,25 +75,28 @@ export function isQuotationItem(value: unknown): value is QuotationItem {
   );
 }
 
-export function isQuotation(value: unknown): value is Quotation {
+export function isQuotation(value: unknown): value is BackendQuotation {
   if (!value || typeof value !== "object") return false;
-  const q = value as Partial<Quotation>;
+  const q = value as Partial<BackendQuotation>;
 
   return (
     typeof q.id === "string" &&
-    typeof q.customerId === "string" &&
-    typeof q.status === "string" &&
+    typeof q.code === "string" &&
+    typeof q.customerName === "string" &&
+    typeof q.issueDate === "string" && !Number.isNaN(Date.parse(q.issueDate)) &&
+    (q.validUntil === null || (typeof q.validUntil === "string" && !Number.isNaN(Date.parse(q.validUntil)))) &&
+    typeof q.status === "number" && Number.isInteger(q.status) &&
+    q.status >= 1 && q.status <= QUOTATION_STATUSES.length &&
     typeof q.totalAmount === "number" &&
-    Array.isArray(q.items) &&
-    q.items.every(isQuotationItem)
+    Number.isFinite(q.totalAmount)
   );
 }
 
 export function isPaginatedQuotations(
   value: unknown,
-): value is PaginatedQuotations {
+): value is BackendPaginatedQuotations {
   if (!value || typeof value !== "object") return false;
-  const p = value as Partial<PaginatedQuotations>;
+  const p = value as Partial<BackendPaginatedQuotations>;
 
   return (
     Array.isArray(p.items) &&
@@ -102,8 +117,14 @@ export async function fetchQuotations(
   baseUrl = getApiBaseUrl(),
 ): Promise<PaginatedQuotations> {
   const queryParams = new URLSearchParams();
-  if (search && search.trim()) queryParams.set("search", search.trim());
-  if (status && status.trim()) queryParams.set("status", status.trim());
+  if (search && search.trim()) queryParams.set("SearchTerm", search.trim());
+  if (status && status.trim()) {
+    const selectedStatus = status.trim();
+    if (!isQuotationStatus(selectedStatus)) {
+      throw new AuthBackendError(400, "Status inválido.");
+    }
+    queryParams.set("Status", String(QUOTATION_STATUSES.indexOf(selectedStatus) + 1));
+  }
   queryParams.set("page", page.toString());
   queryParams.set("pageSize", pageSize.toString());
 
@@ -144,7 +165,13 @@ export async function fetchQuotations(
     );
   }
 
-  return data;
+  return {
+    ...data,
+    items: data.items.map((quotation) => ({
+      ...quotation,
+      status: QUOTATION_STATUSES[quotation.status - 1],
+    })),
+  };
 }
 
 export async function createQuotation(
@@ -219,7 +246,7 @@ export async function updateQuotationStatus(
           Accept: "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ newStatus: QUOTATION_STATUSES.indexOf(status) + 1 }),
         cache: "no-store",
       },
     );
@@ -257,7 +284,7 @@ export async function exportQuotationPdf(
   let response: Response;
   try {
     response = await fetcher(
-      `${normalizeApiBaseUrl(baseUrl)}/api/v1/quotations/${quotationId}/export/pdf`,
+      `${normalizeApiBaseUrl(baseUrl)}/api/v1/quotations/${quotationId}/pdf`,
       {
         method: "GET",
         headers: {

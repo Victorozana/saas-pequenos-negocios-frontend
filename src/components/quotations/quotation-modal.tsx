@@ -137,16 +137,21 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
     setLoading(true);
     try {
       const payload: CreateQuotationPayload = {
+        code: `ORC-${crypto.randomUUID().toUpperCase()}`,
         customerId,
+        issueDate: new Date().toISOString(),
         validUntil: new Date(validUntil).toISOString(),
-        notes: notes.trim() || undefined,
+        notes: notes.trim() || null,
+        paymentTerms: null,
         items: items.map(item => ({
+          serviceItemId: null,
           serviceName: item.serviceName.trim(),
           unit: item.unit.trim(),
           unitPrice: Number(item.unitPrice),
           quantity: Number(item.quantity),
           discountAmount: Number(item.discountAmount),
         })),
+        deposit: null,
       };
 
       const response = await fetch("/api/quotations", {

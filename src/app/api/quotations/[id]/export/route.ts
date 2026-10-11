@@ -35,7 +35,7 @@ function backendStatus(error: unknown): number | undefined {
 
 function isExpiredSession(error: unknown): boolean {
   const status = backendStatus(error);
-  return status !== undefined && [401, 403, 404].includes(status);
+  return status !== undefined && [401, 403].includes(status);
 }
 
 function statusFor(error: unknown): number {
@@ -89,6 +89,13 @@ export async function handleExportQuotation(
         expiredSessionCookieOptions(),
       );
       return response;
+    }
+
+    if (backendStatus(error) === 404) {
+      return NextResponse.json(
+        { message: "Orçamento não encontrado." },
+        { status: 404 },
+      );
     }
 
     if (error instanceof AuthBackendError && error.status === 400) {

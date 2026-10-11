@@ -149,5 +149,24 @@ describe("QuotationModal", () => {
       expect(handleSaved).toHaveBeenCalled();
       expect(handleClose).toHaveBeenCalled();
     });
+
+    const postCall = fetchSpy.mock.calls.find(([, init]) => init?.method === "POST");
+    const submitted = JSON.parse(String(postCall?.[1]?.body));
+    expect(submitted).toMatchObject({
+      code: expect.stringMatching(/^ORC-[0-9A-F-]{36}$/),
+      customerId: "cust-1",
+      issueDate: expect.any(String),
+      notes: null,
+      paymentTerms: null,
+      deposit: null,
+      items: [{
+        serviceItemId: null,
+        serviceName: "Instalação de Vidro",
+        unit: "Unidade",
+        unitPrice: 300,
+        quantity: 1,
+        discountAmount: 0,
+      }],
+    });
   });
 });

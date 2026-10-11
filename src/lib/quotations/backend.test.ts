@@ -28,17 +28,19 @@ describe("quotations backend client", () => {
 
     const validQuotation = {
       id: "quot-1",
-      customerId: "cust-1",
+      code: "ORC-2026-001",
       customerName: "Empresa",
       totalAmount: 190,
-      status: "Draft",
+      status: 2,
       validUntil: "2026-12-31T00:00:00Z",
-      notes: null,
-      items: [validItem],
-      createdAt: "2026-08-15T00:00:00Z",
+      issueDate: "2026-08-15T00:00:00Z",
     };
     expect(isQuotation(validQuotation)).toBe(true);
     expect(isQuotation(null)).toBe(false);
+    expect(isQuotation({ ...validQuotation, validUntil: null })).toBe(true);
+    expect(isQuotation({ ...validQuotation, status: "Pending" })).toBe(false);
+    expect(isQuotation({ ...validQuotation, status: 99 })).toBe(false);
+    expect(isQuotation({ ...validQuotation, issueDate: "invalid" })).toBe(false);
 
     const validPaginated = {
       items: [validQuotation],
@@ -58,24 +60,12 @@ describe("quotations backend client", () => {
           items: [
             {
               id: "quot-1",
-              customerId: "cust-1",
+              code: "ORC-2026-001",
               customerName: "Vidraçaria Silva",
               totalAmount: 500,
-              status: "Sent",
-              validUntil: "2026-12-31T00:00:00Z",
-              notes: null,
-              items: [
-                {
-                  id: "it-1",
-                  serviceName: "Box Vidro",
-                  unit: "Unidade",
-                  unitPrice: 500,
-                  quantity: 1,
-                  discountAmount: 0,
-                  totalPrice: 500,
-                },
-              ],
-              createdAt: "2026-08-15T00:00:00Z",
+              status: 2,
+              validUntil: null,
+              issueDate: "2026-08-15T00:00:00Z",
             },
           ],
           totalCount: 1,
@@ -87,7 +77,7 @@ describe("quotations backend client", () => {
     const result = await fetchQuotations(
       "test-token",
       "Silva",
-      "Sent",
+      "Pending",
       2,
       10,
       mockFetcher as unknown as typeof fetch,
@@ -95,7 +85,7 @@ describe("quotations backend client", () => {
     );
 
     expect(mockFetcher).toHaveBeenCalledWith(
-      "http://localhost:5050/api/v1/quotations?search=Silva&status=Sent&page=2&pageSize=10",
+      "http://localhost:5050/api/v1/quotations?SearchTerm=Silva&Status=2&page=2&pageSize=10",
       expect.objectContaining({
         method: "GET",
         headers: {
@@ -106,6 +96,8 @@ describe("quotations backend client", () => {
     );
     expect(result.items.length).toBe(1);
     expect(result.items[0].customerName).toBe("Vidraçaria Silva");
+    expect(result.items[0].status).toBe("Pending");
+    expect(result.items[0].validUntil).toBeNull();
   });
 
   it("createQuotation sends POST payload and returns created id", async () => {
@@ -115,10 +107,15 @@ describe("quotations backend client", () => {
     });
 
     const payload = {
+      code: "ORC-2026-001",
       customerId: "cust-1",
+      issueDate: "2026-10-10T12:00:00Z",
       validUntil: "2026-12-31T00:00:00Z",
+      notes: null,
+      paymentTerms: null,
       items: [
         {
+          serviceItemId: null,
           serviceName: "Manutenção",
           unit: "Horas",
           unitPrice: 120,
@@ -126,6 +123,7 @@ describe("quotations backend client", () => {
           discountAmount: 20,
         },
       ],
+      deposit: null,
     };
 
     const result = await createQuotation(
@@ -143,6 +141,7 @@ describe("quotations backend client", () => {
       }),
     );
     expect(result.id).toBe("quot-created-999");
+    expect(mockFetcher.mock.calls[0][1]?.body).toBe(JSON.stringify(payload));
   });
 
   it("updateQuotationStatus sends PATCH request with new status", async () => {
@@ -163,7 +162,7 @@ describe("quotations backend client", () => {
       "http://localhost:5050/api/v1/quotations/quot-1/status",
       expect.objectContaining({
         method: "PATCH",
-        body: JSON.stringify({ status: "Approved" }),
+        body: JSON.stringify({ newStatus: 3 }),
       }),
     );
   });
@@ -183,7 +182,7 @@ describe("quotations backend client", () => {
     );
 
     expect(mockFetcher).toHaveBeenCalledWith(
-      "http://localhost:5050/api/v1/quotations/quot-1/export/pdf",
+      "http://localhost:5050/api/v1/quotations/quot-1/pdf",
       expect.objectContaining({
         method: "GET",
         headers: {

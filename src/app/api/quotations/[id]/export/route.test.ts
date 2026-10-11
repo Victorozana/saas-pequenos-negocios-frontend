@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 
 import { AuthBackendError, type UserProfile } from "@/lib/auth/backend";
@@ -29,6 +30,19 @@ describe("GET /api/quotations/[id]/export BFF handler", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe("application/pdf");
     expect(response.headers.get("Content-Disposition")).toContain('attachment; filename="orcamento-quot-1.pdf"');
+    expect(await response.text()).toBe("%PDF-1.4...");
+  });
+
+  it("returns 404 without clearing the session when the quotation is not found", async () => {
+    const response = await handleExportQuotation(
+      "valid-token", "quot-missing",
+      vi.fn().mockResolvedValue(mockUser),
+      vi.fn().mockRejectedValue(new AuthBackendError(404, "Not found")),
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.has("set-cookie")).toBe(false);
+    expect(await response.json()).toEqual({ message: "Orçamento não encontrado." });
   });
 
   it("returns 401 and clears cookie when session is missing", async () => {

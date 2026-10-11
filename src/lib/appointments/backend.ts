@@ -180,7 +180,7 @@ export async function createAppointment(
 
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    throw new AppointmentBackendError(response.status, data.error || "Failed to create appointment");
+    throw new AppointmentBackendError(response.status, data.error || data.title || "Failed to create appointment");
   }
 
   return response.json();

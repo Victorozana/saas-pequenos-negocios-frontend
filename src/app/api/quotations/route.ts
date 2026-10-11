@@ -52,6 +52,7 @@ function isExpiredSession(error: unknown): boolean {
 
 function statusFor(error: unknown): number {
   const status = backendStatus(error);
+  if (status === 502) return 502;
   if (status !== undefined) return status >= 500 ? 503 : 502;
 
   return 502;

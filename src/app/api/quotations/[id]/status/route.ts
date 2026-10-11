@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth/session-cookie";
 import {
   updateQuotationStatus,
+  isQuotationStatus,
   type QuotationStatus,
 } from "@/lib/quotations/backend";
 
@@ -118,7 +119,7 @@ export async function PATCH(
     );
   }
 
-  if (!payload.status || !["Draft", "Sent", "Approved", "Rejected"].includes(payload.status)) {
+  if (!isQuotationStatus(payload.status)) {
     return NextResponse.json(
       { message: "Status inválido." },
       { status: 400 },

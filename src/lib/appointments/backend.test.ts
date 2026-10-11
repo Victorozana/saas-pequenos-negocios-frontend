@@ -2,8 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   AppointmentBackendError,
+  createAppointment,
   fetchTodayAppointments,
 } from "./backend";
+
+it("preserves the work order validation message from ProblemDetails", async () => {
+  await expect(createAppointment("token", {
+    type: 1,
+    startTime: "2026-10-11T12:00:00Z",
+    endTime: "2026-10-11T13:00:00Z",
+    workOrderId: "missing",
+  }, async () => Response.json({ title: "A ordem de serviço informada não foi encontrada." }, { status: 400 }), "http://localhost:5050"))
+    .rejects.toMatchObject({ status: 400, message: "A ordem de serviço informada não foi encontrada." });
+});
 
 describe("fetchTodayAppointments", () => {
   it("queries the assigned person's current day and returns appointments ordered by time", async () => {
