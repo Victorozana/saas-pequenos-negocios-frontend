@@ -24,9 +24,7 @@ describe("QuotationModal", () => {
   });
 
   it("renders correctly when open and loads customers", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json(mockCustomers),
-    );
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => Response.json(String(input).includes("/api/services") ? { services: { items: [], totalCount: 0 } } : mockCustomers));
 
     render(<QuotationModal isOpen={true} onClose={vi.fn()} onSaved={vi.fn()} />);
 
@@ -39,9 +37,7 @@ describe("QuotationModal", () => {
   });
 
   it("calculates total price correctly when quantities, prices and discounts change", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json(mockCustomers),
-    );
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => Response.json(String(input).includes("/api/services") ? { services: { items: [], totalCount: 0 } } : mockCustomers));
 
     render(<QuotationModal isOpen={true} onClose={vi.fn()} onSaved={vi.fn()} />);
 
@@ -61,9 +57,7 @@ describe("QuotationModal", () => {
   });
 
   it("validates missing customer on submit", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json(mockCustomers),
-    );
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => Response.json(String(input).includes("/api/services") ? { services: { items: [], totalCount: 0 } } : mockCustomers));
 
     render(<QuotationModal isOpen={true} onClose={vi.fn()} onSaved={vi.fn()} />);
 
@@ -82,9 +76,7 @@ describe("QuotationModal", () => {
   });
 
   it("validates missing service name on submit", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      Response.json(mockCustomers),
-    );
+    vi.spyOn(globalThis, "fetch").mockImplementation(async input => Response.json(String(input).includes("/api/services") ? { services: { items: [], totalCount: 0 } } : mockCustomers));
 
     render(<QuotationModal isOpen={true} onClose={vi.fn()} onSaved={vi.fn()} />);
 
@@ -111,6 +103,9 @@ describe("QuotationModal", () => {
 
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/services")) {
+        return Promise.resolve(Response.json({ services: { items: [], totalCount: 0 } }));
+      }
       if (url.includes("/api/customers")) {
         return Promise.resolve(Response.json(mockCustomers));
       }
@@ -167,6 +162,32 @@ describe("QuotationModal", () => {
         quantity: 1,
         discountAmount: 0,
       }],
+    });
+  });
+  it("uses the tenant catalog and submits the selected service with its price and unit", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = String(input);
+      if (url.includes("/api/customers")) return Promise.resolve(Response.json(mockCustomers));
+      if (url.includes("/api/services")) return Promise.resolve(Response.json({ services: {
+        items: [
+          { id: "service-1", name: "Corte cadastrado", unit: "m²", basePrice: 150, isActive: true },
+          { id: "inactive", name: "Servico inativo", unit: "un", basePrice: 50, isActive: false },
+        ], totalCount: 2,
+      } }));
+      if (init?.method === "POST") return Promise.resolve(Response.json({ id: "quotation" }, { status: 201 }));
+      return Promise.reject(new Error("Unexpected request"));
+    });
+    render(<QuotationModal isOpen={true} onClose={vi.fn()} onSaved={vi.fn()} />);
+    await screen.findByText("Corte cadastrado");
+    expect(screen.queryByText("Servico inativo")).toBeNull();
+    fireEvent.change(screen.getByLabelText(/Cliente/i), { target: { value: "cust-1" } });
+    fireEvent.change(screen.getByLabelText(/Catálogo cadastrado/i), { target: { value: "service-1" } });
+    fireEvent.click(screen.getByRole("button", { name: /Gerar Orçamento/i }));
+    await waitFor(() => {
+      const call = fetchSpy.mock.calls.find(([, init]) => init?.method === "POST");
+      expect(JSON.parse(String(call?.[1]?.body)).items[0]).toMatchObject({
+        serviceItemId: "service-1", serviceName: "Corte cadastrado", unit: "m²", unitPrice: 150,
+      });
     });
   });
 });

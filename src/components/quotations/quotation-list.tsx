@@ -1,5 +1,7 @@
 "use client";
 
+import { AppointmentModal } from "@/components/agenda/appointment-modal";
+
 import {
   CheckCircle2,
   ChevronLeft,
@@ -70,6 +72,9 @@ export function QuotationList({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PaginatedQuotations | null>(null);
   const [localRefresh, setLocalRefresh] = useState(0);
+  const [generatedOrderId, setGeneratedOrderId] = useState<string | null>(null);
+  const [schedulingOrder, setSchedulingOrder] = useState(false);
+  const [convertingId, setConvertingId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,20 +149,25 @@ export function QuotationList({
   };
 
   const handleConvertToOS = async (id: string) => {
+    if (convertingId) return;
+    setConvertingId(id);
     try {
       const res = await fetch(`/api/quotations/${id}/convert`, {
         method: "POST",
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.message || "Não foi possível gerar a Ordem de Serviço.");
+        setError(data.message || "Não foi possível gerar a Ordem de Serviço.");
         return;
       }
       const data = await res.json();
-      alert(`Ordem de Serviço gerada com sucesso! ID: ${data.id}`);
+      setGeneratedOrderId(data.id);
+      setError(null);
       setLocalRefresh((prev) => prev + 1);
     } catch {
-      alert("Não foi possível gerar a Ordem de Serviço agora.");
+      setError("Não foi possível gerar a Ordem de Serviço agora.");
+    } finally {
+      setConvertingId(null);
     }
   };
 
@@ -184,6 +194,13 @@ export function QuotationList({
 
   return (
     <div className="space-y-4">
+      {generatedOrderId && (
+        <div role="status" className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+          Ordem de serviço salva com sucesso.
+          <Button className="ml-3" onClick={() => setSchedulingOrder(true)}>Agendar esta OS</Button>
+        </div>
+      )}
+      {schedulingOrder && generatedOrderId && <AppointmentModal key={generatedOrderId} isOpen={true} initialWorkOrderId={generatedOrderId} onClose={() => setSchedulingOrder(false)} onSaved={() => setSchedulingOrder(false)} />}
       {/* Top Bar: Search, Filters & Action CTA */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-1 max-w-2xl">
@@ -351,7 +368,7 @@ export function QuotationList({
                               </DropdownMenuItem>
                             )}
                             {quotation.status === "Approved" && (
-                              <DropdownMenuItem onClick={() => handleConvertToOS(quotation.id)}>
+                              <DropdownMenuItem disabled={convertingId !== null} onClick={() => handleConvertToOS(quotation.id)}>
                                 <BriefcaseBusiness className="mr-2 size-4 text-emerald-600" />
                                 Gerar Ordem de Serviço (OS)
                               </DropdownMenuItem>

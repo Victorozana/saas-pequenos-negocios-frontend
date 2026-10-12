@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PaginatedCustomers } from "@/lib/customers/backend";
 import type { CreateQuotationPayload } from "@/lib/quotations/backend";
+import type { ServiceItem } from "@/lib/services/backend";
 
 interface QuotationModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface QuotationModalProps {
 }
 
 type QuotationItemForm = {
+  serviceItemId?: string;
   serviceName: string;
   unit: string;
   unitPrice: number;
@@ -40,6 +42,35 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
 
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    async function loadServices() {
+      setLoadingServices(true);
+      setCatalogError(null);
+      try {
+        const catalog: ServiceItem[] = [];
+        for (let page = 1; ; page++) {
+          const response = await fetch(`/api/services?page=${page}&pageSize=100`);
+          if (!response.ok) throw new Error();
+          const { services: data } = await response.json();
+          catalog.push(...data.items);
+          if (catalog.length >= data.totalCount || data.items.length === 0) break;
+        }
+        if (active) setServices(catalog.filter(service => service.isActive));
+      } catch {
+        if (active) setCatalogError("Não foi possível carregar os serviços cadastrados. Feche e abra o formulário para tentar novamente.");
+      } finally {
+        if (active) setLoadingServices(false);
+      }
+    }
+    void loadServices();
+    return () => { active = false; };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -144,7 +175,7 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
         notes: notes.trim() || null,
         paymentTerms: null,
         items: items.map(item => ({
-          serviceItemId: null,
+          serviceItemId: item.serviceItemId || null,
           serviceName: item.serviceName.trim(),
           unit: item.unit.trim(),
           unitPrice: Number(item.unitPrice),
@@ -255,6 +286,8 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
             </div>
 
             <div className="space-y-4">
+              {catalogError && <p role="status" className="text-sm text-red-700">{catalogError}</p>}
+              {!loadingServices && !catalogError && services.length === 0 && <p className="text-sm text-slate-500">Nenhum serviço ativo cadastrado. Você pode descrever um item manualmente.</p>}
               {items.map((item, index) => {
                 const subtotal = (item.quantity || 0) * (item.unitPrice || 0);
                 const total = subtotal - (item.discountAmount || 0);
@@ -273,6 +306,18 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
                     )}
                     
                     <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 mt-1">
+                      <div className="sm:col-span-12">
+                        <label htmlFor={`catalog-${index}`} className="block text-xs font-medium text-slate-700 mb-1">Catálogo cadastrado — item {index + 1}</label>
+                        <select id={`catalog-${index}`} className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm" value={item.serviceItemId || ""} disabled={loadingServices} onChange={e => {
+                          const service = services.find(entry => entry.id === e.target.value);
+                          setItems(previous => previous.map((entry, position) => position !== index ? entry : service
+                            ? { ...entry, serviceItemId: service.id, serviceName: service.name, unit: service.unit, unitPrice: service.basePrice }
+                            : { ...entry, serviceItemId: undefined, serviceName: "", unit: "Unidade", unitPrice: 0 }));
+                        }}>
+                          <option value="">{loadingServices ? "Carregando catálogo..." : "Descrição manual"}</option>
+                          {services.map(service => <option key={service.id} value={service.id}>{service.name}</option>)}
+                        </select>
+                      </div>
                       <div className="sm:col-span-12">
                         <label htmlFor={`serviceName-${index}`} className="block text-xs font-medium text-slate-700 mb-1">
                           Serviço <span className="text-red-500">*</span>

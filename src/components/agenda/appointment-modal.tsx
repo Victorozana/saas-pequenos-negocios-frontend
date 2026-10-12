@@ -10,15 +10,16 @@ type AppointmentModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
+  initialWorkOrderId?: string;
 };
 
-export function AppointmentModal({ isOpen, onClose, onSaved }: AppointmentModalProps) {
+export function AppointmentModal({ isOpen, onClose, onSaved, initialWorkOrderId = "" }: AppointmentModalProps) {
   const [type, setType] = useState("1"); // 1=TechnicalVisit
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [workOrderId, setWorkOrderId] = useState("");
+  const [workOrderId, setWorkOrderId] = useState(initialWorkOrderId);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -42,7 +43,7 @@ export function AppointmentModal({ isOpen, onClose, onSaved }: AppointmentModalP
         endTime: new Date(endTime).toISOString(),
         address: address || undefined,
         notes: notes || undefined,
-        workOrderId: workOrderId || undefined,
+        workOrderId: workOrderId.trim() || undefined,
       };
 
       const res = await fetch("/api/appointments", {
