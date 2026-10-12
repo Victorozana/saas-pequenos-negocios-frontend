@@ -16,6 +16,7 @@ export type Customer = {
   state: string | null;
   zipCode: string | null;
   isActive: boolean;
+  automaticRemindersEnabled: boolean;
 };
 
 export type PaginatedCustomers = {
@@ -38,6 +39,7 @@ export type CreateCustomerPayload = {
   city?: string | null;
   state?: string | null;
   zipCode?: string | null;
+  automaticRemindersEnabled?: boolean;
 };
 
 export type UpdateCustomerPayload = CreateCustomerPayload & {
@@ -58,7 +60,8 @@ export function isCustomer(value: unknown): value is Customer {
     typeof c.id === "string" &&
     typeof c.name === "string" &&
     typeof c.phone === "string" &&
-    typeof c.isActive === "boolean"
+    typeof c.isActive === "boolean" &&
+    typeof c.automaticRemindersEnabled === "boolean"
   );
 }
 

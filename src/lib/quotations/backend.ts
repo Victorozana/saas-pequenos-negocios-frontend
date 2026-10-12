@@ -52,12 +52,49 @@ export type CreateQuotationPayload = {
   code: string;
   customerId: string;
   issueDate: string;
-  validUntil: string;
+  validUntil: string | null;
   notes: string | null;
   paymentTerms: string | null;
   items: CreateQuotationItemPayload[];
-  deposit: null;
+  deposit: { type: number; value: number; paymentNotes: string | null } | null;
 };
+
+export type QuotationDetail = Omit<components["schemas"]["QuotationDetailDto"], "status" | "items" | "depositInfo"> & {
+  status: QuotationStatus;
+  items: (QuotationItem & { serviceItemId: string | null })[];
+  depositInfo: { type: number; value: number; paymentNotes: string | null } | null;
+};
+
+export async function fetchQuotation(accessToken: string, id: string, fetcher: Fetcher = fetch, baseUrl = getApiBaseUrl()): Promise<QuotationDetail> {
+  const data = await quotationRequest(accessToken, id, "GET", undefined, fetcher, baseUrl);
+  if (!isQuotation(data) || !("items" in data) || !Array.isArray(data.items) || !data.items.every(isQuotationItem)) {
+    throw new AuthBackendError(502, "O serviço retornou um formato de orçamento inválido.");
+  }
+  return { ...data, status: QUOTATION_STATUSES[data.status - 1] } as QuotationDetail;
+}
+
+export async function updateQuotation(accessToken: string, id: string, payload: CreateQuotationPayload, fetcher: Fetcher = fetch, baseUrl = getApiBaseUrl()): Promise<void> {
+  await quotationRequest(accessToken, id, "PUT", payload, fetcher, baseUrl);
+}
+
+async function quotationRequest(accessToken: string, id: string, method: "GET" | "PUT", payload: CreateQuotationPayload | undefined, fetcher: Fetcher, baseUrl: string): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetcher(`${normalizeApiBaseUrl(baseUrl)}/api/v1/quotations/${id}`, {
+      method,
+      headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      ...(payload ? { body: JSON.stringify(payload) } : {}),
+      cache: "no-store",
+    });
+  } catch {
+    throw new AuthBackendError(503, "Não foi possível acessar o orçamento agora. Tente novamente.");
+  }
+  if (!response.ok) {
+    const problem = await response.json().catch(() => ({}));
+    throw new AuthBackendError(response.status, problem.message || problem.title || "Não foi possível acessar o orçamento agora. Tente novamente.");
+  }
+  return method === "GET" ? response.json() : undefined;
+}
 
 type Fetcher = (
   input: RequestInfo | URL,

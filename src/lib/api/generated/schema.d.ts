@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["HealthCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/email-verifications": {
         parameters: {
             query?: never;
@@ -208,7 +224,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetQuotationById"];
-        put?: never;
+        put: operations["UpdateQuotation"];
         post?: never;
         delete?: never;
         options?: never;
@@ -677,6 +693,21 @@ export interface components {
             password: string;
             name: string | null;
         };
+        AppointmentResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            workOrderId?: string | null;
+            type?: string;
+            /** Format: date-time */
+            startTime?: string;
+            /** Format: date-time */
+            endTime?: string;
+            address?: string | null;
+            notes?: string | null;
+            /** Format: uuid */
+            assignedToUserId?: string | null;
+        };
         AppointmentType: number;
         ChangePlanCommand: {
             /** Format: uuid */
@@ -725,6 +756,8 @@ export interface components {
             city: string | null;
             state: string | null;
             zipCode: string | null;
+            /** @default true */
+            automaticRemindersEnabled: boolean;
         };
         CreateDepositDto: {
             type: components["schemas"]["DepositType"];
@@ -802,6 +835,8 @@ export interface components {
             state: string | null;
             zipCode: string | null;
             isActive: boolean;
+            /** @default true */
+            automaticRemindersEnabled: boolean;
         };
         DashboardSummaryDto: {
             /** Format: double */
@@ -874,6 +909,9 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             sentAt: string | null;
+            /** Format: uuid */
+            customerId: string | null;
+            audience: string;
         };
         NotificationQueuedResponse: {
             message: string;
@@ -1050,6 +1088,8 @@ export interface components {
             recipient: string;
             channel: string;
             content: string;
+            /** Format: uuid */
+            customerId?: string | null;
         };
         SendQuotationNotificationCommand: {
             /** Format: uuid */
@@ -1152,6 +1192,20 @@ export interface components {
             zipCode: string | null;
             /** @default false */
             preserveDocument: boolean;
+            automaticRemindersEnabled?: boolean | null;
+        };
+        UpdateQuotationCommand: {
+            code: string;
+            /** Format: uuid */
+            customerId: string;
+            /** Format: date-time */
+            issueDate: string;
+            /** Format: date-time */
+            validUntil: string | null;
+            notes: string | null;
+            paymentTerms: string | null;
+            items: components["schemas"]["CreateQuotationItemDto"][];
+            deposit: unknown | components["schemas"]["CreateDepositDto"];
         };
         UpdateQuotationStatusCommand: {
             newStatus: components["schemas"]["QuotationStatus"];
@@ -1206,6 +1260,38 @@ export interface components {
             /** Format: uuid */
             workOrderId: string;
         };
+        WorkOrderItemResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            serviceItemId?: string | null;
+            serviceName?: string;
+            unit?: string;
+            /** Format: double */
+            quantity?: unknown;
+            /** Format: double */
+            unitPrice?: unknown;
+            /** Format: double */
+            discountAmount?: unknown;
+            /** Format: double */
+            totalAmount?: unknown;
+        };
+        WorkOrderResponse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            /** Format: uuid */
+            customerId?: string;
+            /** Format: uuid */
+            quotationId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            completedAt?: string | null;
+            status?: string;
+            notes?: string | null;
+            items?: components["schemas"]["WorkOrderItemResponse"][];
+        };
         WorkOrderStatus: number;
     };
     responses: never;
@@ -1216,6 +1302,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    HealthCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
     VerifyEmail: {
         parameters: {
             query?: never;
@@ -1235,6 +1359,33 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -1287,6 +1438,24 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Service Unavailable */
             503: {
                 headers: {
@@ -1331,6 +1500,24 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1396,6 +1583,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Service Unavailable */
             503: {
                 headers: {
@@ -1440,8 +1636,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1469,14 +1683,14 @@ export interface operations {
                     "application/json": components["schemas"]["UserProfileResponse"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -1489,6 +1703,13 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1516,6 +1737,24 @@ export interface operations {
                     "application/json": components["schemas"]["CurrentTenantResponse"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     GetCustomers: {
@@ -1540,8 +1779,8 @@ export interface operations {
                     "application/json": components["schemas"]["PaginatedResultOfCustomerResponse"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1549,8 +1788,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1582,8 +1839,8 @@ export interface operations {
                     "application/json": components["schemas"]["CreatedIdResponse"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1591,8 +1848,35 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1622,8 +1906,17 @@ export interface operations {
                     "application/json": components["schemas"]["CustomerResponse"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1631,8 +1924,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1657,8 +1957,15 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unauthorized */
-            401: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1666,8 +1973,42 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1700,8 +2041,8 @@ export interface operations {
                     "application/json": components["schemas"]["PagedResultOfServiceItemDto"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1709,8 +2050,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1751,8 +2110,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1760,8 +2128,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1791,14 +2168,14 @@ export interface operations {
                     "application/json": components["schemas"]["ServiceItemDto"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -1811,6 +2188,13 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1842,14 +2226,23 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -1862,6 +2255,22 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1894,8 +2303,8 @@ export interface operations {
                     "application/json": components["schemas"]["PagedResultOfQuotationListDto"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1903,8 +2312,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1945,8 +2372,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1954,8 +2390,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1985,14 +2430,14 @@ export interface operations {
                     "application/json": components["schemas"]["QuotationDetailDto"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -2005,6 +2450,89 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateQuotation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateQuotationCommand"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2045,14 +2573,14 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -2065,6 +2593,22 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2103,8 +2647,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2112,8 +2665,8 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2137,18 +2690,24 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
+                    /** @description attachment; filename e filename* informam o nome do arquivo para download. */
+                    "Content-Disposition"?: string;
+                    /** @description Tamanho do arquivo em bytes. */
+                    "Content-Length"?: number;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/pdf": string;
                 };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -2161,6 +2720,13 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2181,8 +2747,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Unauthorized */
-            401: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedIdResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2190,8 +2765,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2212,8 +2805,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Unauthorized */
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderResponse"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2221,8 +2832,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2247,8 +2865,15 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unauthorized */
-            401: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2256,8 +2881,42 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2281,8 +2940,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Unauthorized */
-            401: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentResponse"][];
+                };
+            };
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2290,8 +2958,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2332,8 +3018,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2341,8 +3036,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2367,8 +3071,15 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Unauthorized */
-            401: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2376,8 +3087,42 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2405,8 +3150,17 @@ export interface operations {
                     "application/json": components["schemas"]["FinancialTitleResponse"][];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2414,8 +3168,8 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2443,8 +3197,17 @@ export interface operations {
                     "application/json": components["schemas"]["FinancialTitleResponse"][];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2452,8 +3215,8 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2494,8 +3257,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2503,8 +3275,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2545,14 +3326,14 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -2565,6 +3346,22 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2605,14 +3402,14 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -2625,6 +3422,22 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2664,8 +3477,17 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2673,8 +3495,8 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2686,7 +3508,9 @@ export interface operations {
     };
     GetNotifications: {
         parameters: {
-            query?: never;
+            query?: {
+                customerId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2700,6 +3524,33 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationHistoryResponse"][];
+                };
+            };
+            /** @description Dados da requisição inválidos. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -2726,6 +3577,42 @@ export interface operations {
                     "application/json": components["schemas"]["NotificationQueuedResponse"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ScheduleReminder: {
@@ -2748,6 +3635,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -2774,6 +3697,42 @@ export interface operations {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     GetDashboardSummary: {
@@ -2797,8 +3756,8 @@ export interface operations {
                     "application/json": components["schemas"]["DashboardSummaryDto"];
                 };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2806,8 +3765,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2837,8 +3814,8 @@ export interface operations {
                     "application/json": components["schemas"]["UpcomingScheduleDto"][];
                 };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2846,8 +3823,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2872,12 +3867,18 @@ export interface operations {
             /** @description OK */
             200: {
                 headers: {
+                    /** @description attachment; filename e filename* informam o nome do arquivo para download. */
+                    "Content-Disposition"?: string;
+                    /** @description Tamanho do arquivo em bytes. */
+                    "Content-Length"?: number;
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/csv": string;
+                };
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2885,8 +3886,26 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2914,8 +3933,17 @@ export interface operations {
                     "application/json": components["schemas"]["TeamMemberResponse"][];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2923,8 +3951,8 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Forbidden */
-            403: {
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2965,14 +3993,14 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -2988,12 +4016,28 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Conflict */
-            409: {
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3025,14 +4069,23 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Unauthorized */
-            401: {
+            /** @description Dados da requisição inválidos. */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -3048,12 +4101,28 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Conflict */
-            409: {
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3094,14 +4163,14 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
-            /** @description Unauthorized */
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
             401: {
                 headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Forbidden */
             403: {
@@ -3114,6 +4183,24 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3141,6 +4228,33 @@ export interface operations {
                     "application/json": components["schemas"]["TenantSubscriptionDto"];
                 };
             };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     GetSubscriptionPlans: {
@@ -3159,6 +4273,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SaasPlan"][];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -3183,6 +4306,51 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Dados da requisição inválidos. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ProcessBillingWebhook: {
@@ -3204,6 +4372,33 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

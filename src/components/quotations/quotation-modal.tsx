@@ -6,13 +6,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PaginatedCustomers } from "@/lib/customers/backend";
-import type { CreateQuotationPayload } from "@/lib/quotations/backend";
+import type { CreateQuotationPayload, QuotationDetail } from "@/lib/quotations/backend";
 import type { ServiceItem } from "@/lib/services/backend";
 
 interface QuotationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
+  quotationToEdit?: QuotationDetail | null;
 }
 
 type QuotationItemForm = {
@@ -24,16 +25,17 @@ type QuotationItemForm = {
   discountAmount: number;
 };
 
-export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps) {
-  const [customerId, setCustomerId] = useState("");
+function QuotationForm({ isOpen, onClose, onSaved, quotationToEdit }: QuotationModalProps) {
+  const [customerId, setCustomerId] = useState(quotationToEdit?.customerId || "");
   const [validUntil, setValidUntil] = useState(() => {
+    if (quotationToEdit) return quotationToEdit.validUntil?.split("T")[0] || "";
     const date = new Date();
     date.setDate(date.getDate() + 15); // Default to 15 days
     return date.toISOString().split("T")[0];
   });
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(quotationToEdit?.notes || "");
   
-  const [items, setItems] = useState<QuotationItemForm[]>([
+  const [items, setItems] = useState<QuotationItemForm[]>(quotationToEdit ? quotationToEdit.items.map(item => ({ ...item, serviceItemId: item.serviceItemId || undefined })) : [
     { serviceName: "", unit: "Unidade", unitPrice: 0, quantity: 1, discountAmount: 0 }
   ]);
 
@@ -131,7 +133,12 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
       return;
     }
 
-    if (!validUntil) {
+    if (quotationToEdit && quotationToEdit.status !== "Pending") {
+      setError("Somente orçamentos pendentes podem ser editados.");
+      return;
+    }
+
+    if (!validUntil && !quotationToEdit) {
       setError("Informe a validade do orçamento.");
       return;
     }
@@ -168,12 +175,12 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
     setLoading(true);
     try {
       const payload: CreateQuotationPayload = {
-        code: `ORC-${crypto.randomUUID().toUpperCase()}`,
+        code: quotationToEdit?.code || `ORC-${crypto.randomUUID().toUpperCase()}`,
         customerId,
-        issueDate: new Date().toISOString(),
-        validUntil: new Date(validUntil).toISOString(),
+        issueDate: quotationToEdit?.issueDate || new Date().toISOString(),
+        validUntil: validUntil ? new Date(validUntil).toISOString() : null,
         notes: notes.trim() || null,
-        paymentTerms: null,
+        paymentTerms: quotationToEdit?.paymentTerms || null,
         items: items.map(item => ({
           serviceItemId: item.serviceItemId || null,
           serviceName: item.serviceName.trim(),
@@ -182,11 +189,11 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
           quantity: Number(item.quantity),
           discountAmount: Number(item.discountAmount),
         })),
-        deposit: null,
+        deposit: quotationToEdit?.depositInfo ? { type: quotationToEdit.depositInfo.type, value: quotationToEdit.depositInfo.value, paymentNotes: quotationToEdit.depositInfo.paymentNotes } : null,
       };
 
-      const response = await fetch("/api/quotations", {
-        method: "POST",
+      const response = await fetch(quotationToEdit ? `/api/quotations/${quotationToEdit.id}` : "/api/quotations", {
+        method: quotationToEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -200,7 +207,7 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
         setError(
           typeof body.message === "string"
             ? body.message
-            : "Não foi possível criar o orçamento agora. Tente novamente.",
+            : "Não foi possível salvar o orçamento agora. Tente novamente.",
         );
         return;
       }
@@ -208,7 +215,7 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
       onSaved();
       onClose();
     } catch {
-      setError("Não foi possível criar o orçamento agora. Tente novamente.");
+      setError("Não foi possível salvar o orçamento agora. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -232,7 +239,7 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
         </button>
 
         <h2 id="modal-title" className="text-xl font-bold text-slate-950">
-          Novo Orçamento
+          {quotationToEdit ? "Editar Orçamento" : "Novo Orçamento"}
         </h2>
         <p className="mt-1 text-xs text-slate-500">
           Preencha os serviços e valores para gerar a proposta.
@@ -261,6 +268,9 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
                 disabled={loadingCustomers}
               >
                 <option value="">Selecione um cliente</option>
+                {quotationToEdit && !customers.some(customer => customer.id === quotationToEdit.customerId) && (
+                  <option value={quotationToEdit.customerId}>{quotationToEdit.customerName}</option>
+                )}
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -445,10 +455,10 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
               >
                 {loading ? (
                   <>
-                    <LoaderCircle className="size-4 animate-spin" /> Gerando…
+                  <LoaderCircle className="size-4 animate-spin" /> Salvando…
                   </>
                 ) : (
-                  "Gerar Orçamento"
+                  quotationToEdit ? "Salvar Orçamento" : "Gerar Orçamento"
                 )}
               </Button>
             </div>
@@ -457,4 +467,9 @@ export function QuotationModal({ isOpen, onClose, onSaved }: QuotationModalProps
       </div>
     </div>
   );
+}
+
+export function QuotationModal(props: QuotationModalProps) {
+  if (!props.isOpen) return null;
+  return <QuotationForm key={props.quotationToEdit?.id || "new"} {...props} />;
 }

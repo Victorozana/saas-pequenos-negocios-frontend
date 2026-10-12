@@ -33,6 +33,9 @@ function CustomerFormContent({
   const [city, setCity] = useState(customerToEdit?.city || "");
   const [state, setState] = useState(customerToEdit?.state || "");
   const [zipCode, setZipCode] = useState(customerToEdit?.zipCode || "");
+  const [automaticRemindersEnabled, setAutomaticRemindersEnabled] = useState(
+    customerToEdit?.automaticRemindersEnabled ?? true,
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +83,7 @@ function CustomerFormContent({
         city: city.trim() || null,
         state: state.trim() || null,
         zipCode: zipCode.trim() || null,
+        automaticRemindersEnabled,
       };
 
       const isEdit = Boolean(customerToEdit);
@@ -242,6 +246,24 @@ function CustomerFormContent({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-3">
+            <label htmlFor="customer-automatic-reminders" className="flex items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                id="customer-automatic-reminders"
+                type="checkbox"
+                checked={automaticRemindersEnabled}
+                onChange={(e) => setAutomaticRemindersEnabled(e.target.checked)}
+                disabled={loading}
+                aria-describedby="customer-automatic-reminders-help"
+                className="size-4 accent-blue-600"
+              />
+              Receber lembretes automáticos
+            </label>
+            <p id="customer-automatic-reminders-help" className="mt-2 text-xs text-slate-500">
+              Desative para suspender lembretes automáticos deste cliente. Mensagens manuais, orçamentos e convites continuam disponíveis.
+            </p>
           </div>
 
           {/* Endereço */}

@@ -19,6 +19,7 @@ const mockCustomer: Customer = {
   state: "SP",
   zipCode: "13010-000",
   isActive: true,
+  automaticRemindersEnabled: true,
 };
 
 describe("CustomerList", () => {

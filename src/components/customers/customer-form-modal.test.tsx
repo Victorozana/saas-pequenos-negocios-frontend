@@ -19,6 +19,7 @@ const mockCustomer: Customer = {
   state: "SP",
   zipCode: "01000-000",
   isActive: true,
+  automaticRemindersEnabled: true,
 };
 
 describe("CustomerFormModal", () => {
@@ -83,6 +84,7 @@ describe("CustomerFormModal", () => {
             city: null,
             state: null,
             zipCode: null,
+            automaticRemindersEnabled: true,
           }),
         }),
       );
@@ -134,5 +136,51 @@ describe("CustomerFormModal", () => {
     expect(body.documentType).toBeNull();
     expect(body.documentValue).toBeNull();
     expect(body.preserveDocument).toBe(true);
+  });
+
+  it("AC-207 disables automatic reminders while preserving a masked CPF and reads the saved preference on reopening", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    const customer = { ...mockCustomer, documentType: "CPF", documentValue: "***.***.***-09" };
+    const { unmount } = render(<CustomerFormModal isOpen onClose={vi.fn()} onSaved={vi.fn()} customerToEdit={customer} />);
+    const checkbox = screen.getByRole("checkbox", { name: "Receber lembretes automáticos" }) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar Cliente" }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+    const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    expect(body.automaticRemindersEnabled).toBe(false);
+    expect(body.preserveDocument).toBe(true);
+    expect(body.documentValue).toBeNull();
+    unmount();
+    render(<CustomerFormModal isOpen onClose={vi.fn()} onSaved={vi.fn()} customerToEdit={{ ...customer, automaticRemindersEnabled: body.automaticRemindersEnabled }} />);
+    expect((screen.getByRole("checkbox", { name: "Receber lembretes automáticos" }) as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("AC-207 keeps reminders disabled during unrelated edits and permits enabling them again", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    render(<CustomerFormModal isOpen onClose={vi.fn()} onSaved={vi.fn()} customerToEdit={{ ...mockCustomer, automaticRemindersEnabled: false }} />);
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: "Nome editado" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar Cliente" }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(String(fetchSpy.mock.calls[0][1]?.body)).automaticRemindersEnabled).toBe(false);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Receber lembretes automáticos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar Cliente" }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(String(fetchSpy.mock.calls[1][1]?.body)).automaticRemindersEnabled).toBe(true);
+  });
+
+  it("AC-207 allows replacing a masked CPF together with the reminder preference", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    render(<CustomerFormModal isOpen onClose={vi.fn()} onSaved={vi.fn()}
+      customerToEdit={{ ...mockCustomer, documentType: "CPF", documentValue: "***.***.***-09" }} />);
+    fireEvent.change(screen.getByLabelText(/cpf \(11/i), { target: { value: "529.982.247-25" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Receber lembretes automáticos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar Cliente" }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+    const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    expect(body.automaticRemindersEnabled).toBe(false);
+    expect(body.documentType).toBe("CPF");
+    expect(body.documentValue).toBe("52998224725");
+    expect(body.preserveDocument).toBeUndefined();
   });
 });

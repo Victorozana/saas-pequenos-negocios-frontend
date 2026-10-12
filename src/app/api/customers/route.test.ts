@@ -31,6 +31,7 @@ const mockCustomers: PaginatedCustomers = {
       state: "SP",
       zipCode: "01310-100",
       isActive: true,
+      automaticRemindersEnabled: true,
     },
   ],
   totalCount: 1,

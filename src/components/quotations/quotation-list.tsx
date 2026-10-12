@@ -1,6 +1,7 @@
 "use client";
 
 import { AppointmentModal } from "@/components/agenda/appointment-modal";
+import { QuotationModal } from "@/components/quotations/quotation-modal";
 
 import {
   CheckCircle2,
@@ -28,7 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import type { PaginatedQuotations, QuotationStatus } from "@/lib/quotations/backend";
+import type { PaginatedQuotations, QuotationStatus, QuotationDetail } from "@/lib/quotations/backend";
 
 interface QuotationListProps {
   onNewQuotation: () => void;
@@ -75,6 +76,24 @@ export function QuotationList({
   const [generatedOrderId, setGeneratedOrderId] = useState<string | null>(null);
   const [schedulingOrder, setSchedulingOrder] = useState(false);
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [quotationToEdit, setQuotationToEdit] = useState<QuotationDetail | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  async function handleEdit(id: string) {
+    if (editingId) return;
+    setEditingId(id);
+    try {
+      const response = await fetch(`/api/quotations/${id}`);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message);
+      if (body.quotation.status !== "Pending") throw new Error("Somente orçamentos pendentes podem ser editados.");
+      setQuotationToEdit(body.quotation);
+    } catch (error) {
+      setError(error instanceof Error && error.message ? error.message : "Não foi possível carregar o orçamento para edição.");
+    } finally {
+      setEditingId(null);
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -200,6 +219,7 @@ export function QuotationList({
           <Button className="ml-3" onClick={() => setSchedulingOrder(true)}>Agendar esta OS</Button>
         </div>
       )}
+      <QuotationModal isOpen={quotationToEdit !== null} quotationToEdit={quotationToEdit} onClose={() => setQuotationToEdit(null)} onSaved={() => setLocalRefresh(previous => previous + 1)} />
       {schedulingOrder && generatedOrderId && <AppointmentModal key={generatedOrderId} isOpen={true} initialWorkOrderId={generatedOrderId} onClose={() => setSchedulingOrder(false)} onSaved={() => setSchedulingOrder(false)} />}
       {/* Top Bar: Search, Filters & Action CTA */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -342,6 +362,9 @@ export function QuotationList({
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
+                        {quotation.status === "Pending" && (
+                          <Button variant="ghost" size="sm" disabled={editingId !== null} onClick={() => handleEdit(quotation.id)} aria-label={`Editar orçamento ${quotation.code}`}>Editar</Button>
+                        )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-slate-900">

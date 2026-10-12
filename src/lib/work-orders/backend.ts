@@ -1,5 +1,6 @@
 import { normalizeApiBaseUrl } from "@/lib/api/client";
-import { AuthBackendError, getApiBaseUrl } from "@/lib/auth/backend";
+import { getApiBaseUrl } from "@/lib/auth/backend";
+import type { components } from "@/lib/api/generated/schema";
 
 export type WorkOrderStatus =
   | "Scheduled"
@@ -7,6 +8,14 @@ export type WorkOrderStatus =
   | "WaitingForMaterial"
   | "Completed"
   | "Cancelled";
+
+const workOrderStatusValues: Record<WorkOrderStatus, components["schemas"]["WorkOrderStatus"]> = {
+  Scheduled: 1,
+  InProgress: 2,
+  WaitingForMaterial: 3,
+  Completed: 4,
+  Cancelled: 5,
+};
 
 export type WorkOrderItem = {
   id: string;
@@ -70,15 +79,23 @@ export async function convertQuotationToWorkOrder(
   }
 
   if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
+    const data: unknown = await response.json().catch(() => null);
+    const title = data && typeof data === "object" && "title" in data ? data.title : undefined;
     throw new WorkOrderBackendError(
       response.status,
-      data.error || "Failed to convert quotation to work order",
+      typeof title === "string" && title.trim()
+        ? title
+        : response.status === 401 || response.status === 403
+          ? "Sua sessão expirou. Entre novamente."
+          : "Não foi possível converter o orçamento em ordem de serviço.",
     );
   }
 
-  const payload = await response.json();
-  return { id: payload.workOrderId || payload.WorkOrderId || payload.id };
+  const payload: components["schemas"]["WorkOrderConversionResponse"] | null = await response.json().catch(() => null);
+  if (!payload || typeof payload.workOrderId !== "string" || !payload.workOrderId.trim()) {
+    throw new WorkOrderBackendError(502, "O serviço retornou uma conversão inválida.");
+  }
+  return { id: payload.workOrderId };
 }
 
 export async function fetchWorkOrderById(
@@ -130,7 +147,7 @@ export async function updateWorkOrderStatus(
           Accept: "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ status, notes }),
+        body: JSON.stringify({ status: workOrderStatusValues[status], notes }),
         cache: "no-store",
       },
     );

@@ -9,9 +9,26 @@ import {
   isQuotation,
   isQuotationItem,
   updateQuotationStatus,
+  updateQuotation,
+  fetchQuotation,
 } from "./backend";
 
 describe("quotations backend client", () => {
+  it("AC-206 sends quotation edits to PUT with the authenticated tenant session", async () => {
+    const payload = { code: "ORC-1", customerId: "customer-1", issueDate: "2026-10-10T00:00:00Z", validUntil: null,
+      notes: "Revisado", paymentTerms: null, items: [], deposit: null };
+    const fetcher = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    await updateQuotation("test-token", "quotation-1", payload, fetcher);
+    expect(fetcher).toHaveBeenCalledWith("http://localhost:5050/api/v1/quotations/quotation-1", expect.objectContaining({
+      method: "PUT", body: JSON.stringify(payload), headers: expect.objectContaining({ Authorization: "Bearer test-token" }),
+    }));
+  });
+
+  it("AC-206 rejects incomplete quotation details rather than opening an empty edit", async () => {
+    const fetcher = vi.fn().mockResolvedValue(Response.json({ id: "quotation-1" }));
+    await expect(fetchQuotation("test-token", "quotation-1", fetcher)).rejects.toThrow(AuthBackendError);
+  });
+
   it("validates quotation type guards correctly", () => {
     const validItem = {
       id: "item-1",

@@ -26,9 +26,12 @@ describe("customers backend client", () => {
       state: "SP",
       zipCode: "01000-000",
       isActive: true,
+      automaticRemindersEnabled: true,
     };
 
     expect(isCustomer(validCustomer)).toBe(true);
+    expect(isCustomer({ ...validCustomer, automaticRemindersEnabled: false })).toBe(true);
+    expect(isCustomer({ ...validCustomer, automaticRemindersEnabled: "false" })).toBe(false);
     expect(isCustomer(null)).toBe(false);
 
     const validPaginated = {
@@ -62,6 +65,7 @@ describe("customers backend client", () => {
             state: null,
             zipCode: null,
             isActive: true,
+            automaticRemindersEnabled: true,
           },
         ],
         totalCount: 1,
@@ -114,7 +118,7 @@ describe("customers backend client", () => {
     await updateCustomer(
       "valid-token",
       "cust-1",
-      { customerId: "cust-1", name: "João Editado", phone: "11988888888" },
+      { customerId: "cust-1", name: "João Editado", phone: "11988888888", automaticRemindersEnabled: false, preserveDocument: true },
       fetcher as unknown as typeof fetch,
     );
 
@@ -122,6 +126,7 @@ describe("customers backend client", () => {
       "http://localhost:5050/api/v1/customers/cust-1",
       expect.objectContaining({
         method: "PUT",
+        body: JSON.stringify({ customerId: "cust-1", name: "João Editado", phone: "11988888888", automaticRemindersEnabled: false, preserveDocument: true }),
       }),
     );
   });
