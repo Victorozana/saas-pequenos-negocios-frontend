@@ -732,6 +732,10 @@ export interface components {
             value: unknown;
             paymentNotes: string | null;
         };
+        CreatedIdResponse: {
+            /** Format: uuid */
+            id: string;
+        };
         CreatePayableCommand: {
             supplierName: string;
             description: string;
@@ -775,6 +779,29 @@ export interface components {
         CreateSessionRequest: {
             email: string;
             password: string;
+        };
+        CurrentTenantResponse: {
+            message: string;
+            /** Format: uuid */
+            tenantId: string;
+        };
+        CustomerResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            phone: string;
+            email: string | null;
+            documentType: string | null;
+            /** @description CPF mascarado (somente dois dígitos finais), CNPJ ou null. CPF integral nunca é retornado. */
+            documentValue: string | null;
+            street: string | null;
+            number: string | null;
+            complement: string | null;
+            neighborhood: string | null;
+            city: string | null;
+            state: string | null;
+            zipCode: string | null;
+            isActive: boolean;
         };
         DashboardSummaryDto: {
             /** Format: double */
@@ -834,6 +861,25 @@ export interface components {
             quotationId: string | null;
             supplierName?: string | null;
         };
+        MessageResponse: {
+            message: string;
+        };
+        NotificationHistoryResponse: {
+            /** Format: uuid */
+            id: string;
+            recipient: string;
+            channel: string;
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            sentAt: string | null;
+        };
+        NotificationQueuedResponse: {
+            message: string;
+            /** Format: uuid */
+            notificationId: string;
+        };
         PagedResultOfQuotationListDto: {
             items: components["schemas"]["QuotationListDto"][];
             /** Format: int32 */
@@ -852,7 +898,24 @@ export interface components {
             /** Format: int32 */
             pageSize: unknown;
         };
+        PaginatedResultOfCustomerResponse: {
+            items: components["schemas"]["CustomerResponse"][];
+            /** Format: int32 */
+            totalCount: unknown;
+            /** Format: int32 */
+            page: unknown;
+            /** Format: int32 */
+            pageSize: unknown;
+        };
         PaymentMethod: number;
+        PlanLimits: {
+            /** Format: int32 */
+            maxUsers: unknown;
+            /** Format: int32 */
+            maxCustomers: unknown;
+            /** Format: int32 */
+            maxQuotationsPerMonth: unknown;
+        };
         ProblemDetails: {
             type?: string | null;
             title?: string | null;
@@ -962,6 +1025,18 @@ export interface components {
             state: string;
             zipCode: string;
         };
+        SaasPlan: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            description?: string;
+            /** Format: double */
+            price?: unknown;
+            billingCycle?: string;
+            limits?: components["schemas"]["PlanLimits"];
+            /** Format: date-time */
+            createdAtUtc?: string;
+        };
         ScheduleAppointmentReminderCommand: {
             /** Format: uuid */
             appointmentId: string;
@@ -995,6 +1070,7 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        SubscriptionStatus: number;
         TeamInvitationAcceptedResponse: {
             message: string;
         };
@@ -1022,6 +1098,21 @@ export interface components {
         };
         TeamMemberStatusRequest: {
             isActive: boolean;
+        };
+        TenantSubscriptionDto: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            planId: string;
+            planName: string;
+            status: components["schemas"]["SubscriptionStatus"];
+            /** Format: date-time */
+            currentPeriodStart: string;
+            /** Format: date-time */
+            currentPeriodEnd: string;
+            /** Format: date-time */
+            trialEndDate: string | null;
+            limits: components["schemas"]["PlanLimits"];
         };
         UpcomingScheduleDto: {
             /** Format: uuid */
@@ -1059,6 +1150,8 @@ export interface components {
             city: string | null;
             state: string | null;
             zipCode: string | null;
+            /** @default false */
+            preserveDocument: boolean;
         };
         UpdateQuotationStatusCommand: {
             newStatus: components["schemas"]["QuotationStatus"];
@@ -1108,6 +1201,10 @@ export interface components {
             id?: string;
             type?: string;
             data?: components["schemas"]["WebhookData"];
+        };
+        WorkOrderConversionResponse: {
+            /** Format: uuid */
+            workOrderId: string;
         };
         WorkOrderStatus: number;
     };
@@ -1328,8 +1425,6 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
-                    /** @description Development/Test only. Token used to confirm the administrator email after registration. */
-                    "X-Development-Verification-Token"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1417,7 +1512,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CurrentTenantResponse"];
+                };
             };
         };
     };
@@ -1434,6 +1531,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResultOfCustomerResponse"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -1467,6 +1573,15 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedIdResponse"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -1498,6 +1613,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
             /** @description Unauthorized */
             401: {
                 headers: {
@@ -1614,7 +1738,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CreatedIdResponse"];
+                };
             };
             /** @description Bad Request */
             400: {
@@ -1806,7 +1932,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CreatedIdResponse"];
+                };
             };
             /** @description Bad Request */
             400: {
@@ -1962,7 +2090,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WorkOrderConversionResponse"];
+                };
             };
             /** @description Bad Request */
             400: {
@@ -2189,7 +2319,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CreatedIdResponse"];
+                };
             };
             /** @description Bad Request */
             400: {
@@ -2566,7 +2698,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationHistoryResponse"][];
+                };
             };
         };
     };
@@ -2588,7 +2722,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotificationQueuedResponse"];
+                };
             };
         };
     };
@@ -2610,7 +2746,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
             };
         };
     };
@@ -2632,7 +2770,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
             };
         };
     };
@@ -2997,7 +3137,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TenantSubscriptionDto"];
+                };
             };
         };
     };
@@ -3015,7 +3157,9 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SaasPlan"][];
+                };
             };
         };
     };
@@ -3032,8 +3176,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

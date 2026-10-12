@@ -51,7 +51,9 @@ function CustomerFormContent({
       return;
     }
 
-    const cleanDoc = documentValue.replace(/\D/g, "");
+    const preserveDocument = Boolean(customerToEdit && docType === customerToEdit.documentType &&
+      documentValue === customerToEdit.documentValue && documentValue.includes("*"));
+    const cleanDoc = preserveDocument ? "" : documentValue.replace(/\D/g, "");
     if (cleanDoc) {
       if (docType === "CPF" && cleanDoc.length !== 11) {
         setError("Informe um CPF (11 dígitos) ou CNPJ (14 dígitos) válido.");
@@ -90,7 +92,7 @@ function CustomerFormContent({
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
-          isEdit ? { ...payload, customerId: customerToEdit?.id } : payload,
+          isEdit ? { ...payload, customerId: customerToEdit?.id, ...(preserveDocument ? { preserveDocument: true } : {}) } : payload,
         ),
       });
 

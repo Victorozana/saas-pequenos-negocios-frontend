@@ -11,9 +11,7 @@ export async function registerTenant(request: RegisterTenantRequest, idempotency
     if (!upstream.ok) return NextResponse.json({ message: messageForOnboardingStatus(upstream.status, await readOnboardingProblem(upstream)) }, { status: upstream.status });
     const body: unknown = await upstream.json().catch(() => null);
     if (!body || typeof body !== "object" || typeof (body as { message?: unknown }).message !== "string") return NextResponse.json({ message: "O serviço retornou uma resposta inválida." }, { status: 502 });
-    const token = upstream.headers.get("X-Development-Verification-Token");
-    if (!token?.trim()) return NextResponse.json({ message: "A confirmação não pode continuar neste ambiente." }, { status: 502 });
-    return NextResponse.json({ message: (body as { message: string }).message, token }, { status: 201 });
+    return NextResponse.json({ message: (body as { message: string }).message }, { status: 201 });
   } catch { return NextResponse.json({ message: "O serviço está temporariamente indisponível. Tente novamente." }, { status: 503 }); }
 }
 

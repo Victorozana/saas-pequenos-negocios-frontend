@@ -36,6 +36,7 @@ function formatPhone(phone: string): string {
 
 function formatDocument(type: string | null, value: string | null): string {
   if (!value) return "Não informado";
+  if (value.includes("*")) return value;
   const digits = value.replace(/\D/g, "");
 
   if (type === "CPF" || digits.length === 11) {

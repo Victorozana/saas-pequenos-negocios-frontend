@@ -121,4 +121,18 @@ describe("CustomerFormModal", () => {
       expect(handleSaved).toHaveBeenCalled();
     });
   });
+
+  it("preserves a masked CPF when editing other fields without submitting the mask", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(null, { status: 204 }));
+    render(<CustomerFormModal isOpen onClose={vi.fn()} onSaved={vi.fn()}
+      customerToEdit={{ ...mockCustomer, documentType: "CPF", documentValue: "***.***.***-09" }} />);
+    fireEvent.change(screen.getByLabelText(/nome completo/i), { target: { value: "Nome editado" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar Cliente" }));
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+    const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    expect(body.name).toBe("Nome editado");
+    expect(body.documentType).toBeNull();
+    expect(body.documentValue).toBeNull();
+    expect(body.preserveDocument).toBe(true);
+  });
 });

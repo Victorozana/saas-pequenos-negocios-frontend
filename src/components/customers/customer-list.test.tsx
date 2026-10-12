@@ -54,6 +54,15 @@ describe("CustomerList", () => {
     expect(screen.getByText("Campinas / SP")).toBeTruthy();
   });
 
+  it("displays the CPF mask returned by the API without stripping it", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(Response.json({ customers: {
+      items: [{ ...mockCustomer, documentType: "CPF", documentValue: "***.***.***-09" }],
+      totalCount: 1, page: 1, pageSize: 10,
+    } }));
+    render(<CustomerList onEditCustomer={vi.fn()} onNewCustomer={vi.fn()} />);
+    expect(await screen.findByText("***.***.***-09")).toBeTruthy();
+  });
+
   it("renders empty state when no customers are found", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({

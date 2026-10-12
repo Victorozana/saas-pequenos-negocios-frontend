@@ -144,18 +144,20 @@ describe("TenantOnboarding", () => {
     expect(passwordField.getAttribute("aria-describedby")).toBe(alert.id);
     expect(passwordField.getAttribute("aria-invalid")).toBe("true");
   });
-  it("confirms after registration without placing the token in navigation", async () => {
+  it("confirms using a separately supplied code without placing the token in navigation", async () => {
     let resolveVerification: ((response: Response) => void) | undefined;
-    const fetcher = vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(Response.json({ message:"Criado", token:"verification-token" }, {status:201})).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveVerification = resolve; }));
+    const fetcher = vi.spyOn(globalThis,"fetch").mockResolvedValueOnce(Response.json({ message:"Criado" }, {status:201})).mockImplementationOnce(() => new Promise<Response>((resolve) => { resolveVerification = resolve; }));
     render(<TenantOnboarding />); fillStep({ "CNPJ":"1", "Razão social":"Nexo", "Nome fantasia":"Nexo", "Natureza jurídica":"LTDA", "CNAE principal":"1", "E-mail da empresa":"e@n.com", "Telefone":"1" }); fireEvent.change(screen.getByLabelText("Categoria"), {target:{value:"10"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"})); fillStep({ "Logradouro":"Rua", "Número":"1", "Complemento":"-", "Bairro":"Centro", "Cidade":"SP", "UF":"SP", "CEP":"1", "Inscrição estadual":"ISENTO", "Inscrição municipal":"1", "E-mail fiscal":"f@n.com" }); fireEvent.change(screen.getByLabelText("Regime tributário"), {target:{value:"SimplesNacional"}}); fireEvent.click(screen.getByRole("button", {name:"Continuar"})); fillStep({ "Nome do administrador":"Admin", "CPF":"1", "E-mail do administrador":"a@n.com", "Senha":"SenhaSegura123!" }); fireEvent.click(screen.getByRole("button", {name:"Concluir cadastro"}));
     await screen.findByRole("button", {name:"Confirmar e-mail"});
+    expect((screen.getByLabelText("Código de confirmação") as HTMLInputElement).value).toBe("");
+    expect((screen.getByRole("button", {name:"Confirmar e-mail"}) as HTMLButtonElement).disabled).toBe(true);
     expect(fetcher.mock.calls[0][0]).toBe("/api/tenants/register");
     const registrationInit = fetcher.mock.calls[0][1] as RequestInit;
     const registrationHeaders = registrationInit.headers as Record<string, string>;
     expect(JSON.parse(String(registrationInit.body))).toEqual(expectedRegistrationRequest);
     expect(registrationHeaders["Idempotency-Key"]).toEqual(expect.any(String));
     expect(registrationHeaders["Idempotency-Key"].trim()).not.toBe("");
-    fireEvent.click(screen.getByRole("button", {name:"Confirmar e-mail"})); await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2)); expect(fetcher).toHaveBeenLastCalledWith("/api/auth/email-verifications", expect.objectContaining({ body: JSON.stringify({token:"verification-token"}) })); expect(replace).not.toHaveBeenCalled(); resolveVerification?.(new Response(null,{status:204})); await waitFor(()=>expect(replace).toHaveBeenCalledWith("/login"));
+    fireEvent.change(screen.getByLabelText("Código de confirmação"), { target: { value: "verification-token" } }); fireEvent.click(screen.getByRole("button", {name:"Confirmar e-mail"})); await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2)); expect(fetcher).toHaveBeenLastCalledWith("/api/auth/email-verifications", expect.objectContaining({ body: JSON.stringify({token:"verification-token"}) })); expect(replace).not.toHaveBeenCalled(); resolveVerification?.(new Response(null,{status:204})); await waitFor(()=>expect(replace).toHaveBeenCalledWith("/login"));
   });
 
   it("keeps the verification token out of the URL, persistent storage, and logs", async () => {
@@ -170,7 +172,7 @@ describe("TenantOnboarding", () => {
     reachRegistrationStep();
 
     fireEvent.click(screen.getByRole("button", { name: "Concluir cadastro" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar e-mail" }));
+    await screen.findByRole("heading", { name: "Confirme seu e-mail" }); fireEvent.change(screen.getByLabelText("Código de confirmação"), { target: { value: "verification-token" } }); fireEvent.click(screen.getByRole("button", { name: "Confirmar e-mail" }));
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login"));
 
     expect(window.location.href).not.toContain(token);
@@ -188,7 +190,7 @@ describe("TenantOnboarding", () => {
     reachRegistrationStep();
 
     fireEvent.click(screen.getByRole("button", { name: "Concluir cadastro" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Confirmar e-mail" }));
+    await screen.findByRole("heading", { name: "Confirme seu e-mail" }); fireEvent.change(screen.getByLabelText("Código de confirmação"), { target: { value: "verification-token" } }); fireEvent.click(screen.getByRole("button", { name: "Confirmar e-mail" }));
 
     expect((await screen.findByRole("alert")).textContent).toBe("Não foi possível confirmar o e-mail.");
     expect(screen.getByRole("heading", { name: "Confirme seu e-mail" })).toBeDefined();
@@ -242,9 +244,9 @@ describe("TenantOnboarding", () => {
 
   it.each([
     [
-      "without a verification token",
-      () => Response.json({ message: "A confirmação não pode continuar neste ambiente." }, { status: 201 }),
-      "A confirmação não pode continuar neste ambiente.",
+      "without a valid message",
+      () => Response.json({ token: "unexpected" }, { status: 201 }),
+      "Não foi possível concluir o cadastro agora. Tente novamente.",
     ],
     [
       "with an invalid body",

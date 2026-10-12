@@ -42,6 +42,7 @@ export type CreateCustomerPayload = {
 
 export type UpdateCustomerPayload = CreateCustomerPayload & {
   customerId: string;
+  preserveDocument?: boolean;
 };
 
 type Fetcher = (
