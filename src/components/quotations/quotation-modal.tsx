@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { PaginatedCustomers } from "@/lib/customers/backend";
 import type { CreateQuotationPayload, QuotationDetail } from "@/lib/quotations/backend";
+import { quotationCents, quotationItemTotal, quotationSubtotal, quotationTotal } from "@/lib/quotations/calculation";
 import type { ServiceItem } from "@/lib/services/backend";
 
 interface QuotationModalProps {
@@ -114,11 +115,11 @@ function QuotationForm({ isOpen, onClose, onSaved, quotationToEdit }: QuotationM
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const totalAmount = items.reduce((acc, item) => {
-    const subtotal = (item.quantity || 0) * (item.unitPrice || 0);
-    const total = subtotal - (item.discountAmount || 0);
-    return acc + Math.max(0, total);
-  }, 0);
+  const previewAmount = (calculate: () => bigint) => {
+    try { return Number(calculate()) / 100; }
+    catch { return 0; }
+  };
+  const totalAmount = previewAmount(() => quotationTotal(items));
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -166,10 +167,25 @@ function QuotationForm({ isOpen, onClose, onSaved, quotationToEdit }: QuotationM
         setError(`O desconto do item ${i + 1} não pode ser negativo.`);
         return;
       }
-      if (item.discountAmount > (item.quantity * item.unitPrice)) {
+      let subtotal: bigint;
+      let discount: bigint;
+      try {
+        subtotal = quotationSubtotal(item.unitPrice, item.quantity);
+        discount = quotationCents(item.discountAmount);
+      } catch (error) {
+        setError(`Item ${i + 1}: ${error instanceof Error ? error.message : "Valor inválido."}`);
+        return;
+      }
+      if (discount > subtotal) {
         setError(`O desconto do item ${i + 1} não pode ser maior que o subtotal.`);
         return;
       }
+    }
+
+    try { quotationTotal(items); }
+    catch (error) {
+      setError(error instanceof Error ? error.message : "Valor inválido.");
+      return;
     }
 
     setLoading(true);
@@ -299,8 +315,7 @@ function QuotationForm({ isOpen, onClose, onSaved, quotationToEdit }: QuotationM
               {catalogError && <p role="status" className="text-sm text-red-700">{catalogError}</p>}
               {!loadingServices && !catalogError && services.length === 0 && <p className="text-sm text-slate-500">Nenhum serviço ativo cadastrado. Você pode descrever um item manualmente.</p>}
               {items.map((item, index) => {
-                const subtotal = (item.quantity || 0) * (item.unitPrice || 0);
-                const total = subtotal - (item.discountAmount || 0);
+                const total = previewAmount(() => quotationItemTotal(item));
 
                 return (
                   <div key={index} className="relative rounded-xl border border-slate-200 bg-slate-50 p-4 pb-5">

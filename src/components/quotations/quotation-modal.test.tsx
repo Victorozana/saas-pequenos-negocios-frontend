@@ -12,6 +12,38 @@ const mockCustomers = {
 };
 
 describe("QuotationModal", () => {
+  it("previews fractional subtotal and accepts discount equal to rounded subtotal", async () => {
+    const onSaved = vi.fn();
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      if (init?.method === "POST") return Response.json({ id: "fractional" }, { status: 201 });
+      return Response.json(String(input).includes("/api/services") ? { services: { items: [], totalCount: 0 } } : mockCustomers);
+    });
+    render(<QuotationModal isOpen onClose={vi.fn()} onSaved={onSaved} />);
+    await screen.findByText("Cliente Alpha");
+    fireEvent.change(screen.getByLabelText(/Cliente/i), { target: { value: "cust-1" } });
+    fireEvent.change(screen.getByLabelText(/Serviço/i), { target: { value: "Fractional" } });
+    fireEvent.change(screen.getByLabelText(/Quantidade/i), { target: { value: "0.5" } });
+    fireEvent.change(screen.getByLabelText(/Preço Unit/i), { target: { value: "0.05" } });
+    expect(screen.getAllByText(/0,03/).length).toBeGreaterThan(0);
+    fireEvent.change(screen.getByLabelText(/Desconto/i), { target: { value: "0.03" } });
+    fireEvent.click(screen.getByRole("button", { name: /Gerar Orçamento/i }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it.each([/Quantidade/i, /Preço Unit/i, /Desconto/i])("refuses excess decimal precision for %s before HTTP mutation", async (label) => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async input => Response.json(String(input).includes("/api/services") ? { services: { items: [], totalCount: 0 } } : mockCustomers));
+    render(<QuotationModal isOpen onClose={vi.fn()} onSaved={vi.fn()} />);
+    await screen.findByText("Cliente Alpha");
+    fireEvent.change(screen.getByLabelText(/Cliente/i), { target: { value: "cust-1" } });
+    fireEvent.change(screen.getByLabelText(/Serviço/i), { target: { value: "Service" } });
+    fireEvent.change(screen.getByLabelText(/Preço Unit/i), { target: { value: "10" } });
+    fireEvent.change(screen.getByLabelText(label), { target: { value: "0.001" } });
+    // Dispatch submit directly to exercise validation independently of browser step validation.
+    fireEvent.submit(screen.getByRole("button", { name: /Gerar Orçamento/i }).closest("form")!);
+    expect((await screen.findByRole("alert")).textContent).toContain("duas casas decimais");
+    expect(fetchSpy.mock.calls.some(([, init]) => init?.method === "POST")).toBe(false);
+  });
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
