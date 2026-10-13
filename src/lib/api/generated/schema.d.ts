@@ -207,8 +207,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Lista apenas orçamentos do tenant autenticado. Busca por código ou nome do cliente, sem distinguir maiúsculas/minúsculas; status deve ser um valor definido. Página >= 1, tamanho de 1 a 100 (padrões 1/20); deslocamento máximo int32. Total considera os filtros. Ordenação por IssueDate decrescente e Id crescente para desempate. */
         get: operations["GetQuotations"];
         put?: never;
+        /** @description Cria orçamento Pending no tenant autenticado. Código único por empresa (até 50 caracteres); notas e termos até 2000, notas do sinal até 1000. Datas devem usar UTC (sufixo Z). Entradas inválidas ou código repetido retornam 400 sem persistência parcial. */
         post: operations["CreateQuotation"];
         delete?: never;
         options?: never;
@@ -224,6 +226,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetQuotationById"];
+        /** @description Substitui conteúdo somente em Pending. Código único por empresa (até 50 caracteres); notas e termos até 2000, notas do sinal até 1000. Datas devem usar UTC (sufixo Z). Validação antecede alterações; estados finais e edição externa são bloqueados. */
         put: operations["UpdateQuotation"];
         post?: never;
         delete?: never;
@@ -2303,7 +2306,7 @@ export interface operations {
                     "application/json": components["schemas"]["PagedResultOfQuotationListDto"];
                 };
             };
-            /** @description Dados da requisição inválidos. */
+            /** @description Bad Request */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2357,6 +2360,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description Caminho relativo do orçamento criado, acessível com sales.read. */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
