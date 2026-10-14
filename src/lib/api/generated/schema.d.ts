@@ -2755,6 +2755,8 @@ export interface operations {
             /** @description Created */
             201: {
                 headers: {
+                    /** @description Caminho relativo da OS criada ou já existente, acessível com sales.read. */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
