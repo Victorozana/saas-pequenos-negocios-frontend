@@ -10,9 +10,13 @@ describe("permission helpers", () => {
     expect(hasPermission(permissions, "financial.read")).toBe(false);
   });
 
-  it("keeps unavailable modules disabled even when permission exists", () => {
+  it("enables financial and team modules only with their read permission", () => {
     const financial = MODULES.find((module) => module.id === "financial")!;
-    expect(canAccessModule(financial, ["financial.read"])).toBe(false);
+    const team = MODULES.find((module) => module.id === "team")!;
+    expect(canAccessModule(financial, ["financial.read"])).toBe(true);
+    expect(canAccessModule(team, ["team.read"])).toBe(true);
+    expect(canAccessModule(financial, ["financial.write"])).toBe(false);
+    expect(canAccessModule(team, [])).toBe(false);
   });
 
   it("allows access to available modules when permission exists", () => {

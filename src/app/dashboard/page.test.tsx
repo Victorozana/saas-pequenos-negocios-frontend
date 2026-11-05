@@ -10,6 +10,7 @@ const { getSessionUser, redirect } = vi.hoisted(() => ({
 
 vi.mock("@/lib/auth/server-session", () => ({ getSessionUser }));
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard",
   redirect,
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
 }));

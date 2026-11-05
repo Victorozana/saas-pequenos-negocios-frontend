@@ -8,12 +8,12 @@ describe("dashboard proxy", () => {
   it.each([
     "/dashboard", "/dashboard/agenda", "/clientes", "/clientes/123",
     "/servicos", "/servicos/novo", "/orcamentos", "/orcamentos/123/editar",
-    "/agenda", "/agenda/semana",
+    "/agenda", "/agenda/semana", "/financeiro", "/equipe",
   ])("matches the protected operational path %s", (pathname) => {
     expect(unstable_doesMiddlewareMatch({ config, url: `https://app.example.com${pathname}` })).toBe(true);
   });
 
-  it.each(["/", "/login", "/cadastro", "/api/company-registry/123"])("does not match public path %s", (pathname) => {
+  it.each(["/", "/login", "/cadastro", "/convites/aceitar", "/api/company-registry/123"])("does not match public path %s", (pathname) => {
     expect(unstable_doesMiddlewareMatch({ config, url: `https://app.example.com${pathname}` })).toBe(false);
   });
 

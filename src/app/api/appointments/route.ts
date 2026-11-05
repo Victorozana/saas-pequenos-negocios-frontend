@@ -11,7 +11,7 @@ import {
 } from "@/lib/appointments/backend";
 
 type ProfileLoader = (accessToken: string) => Promise<UserProfile>;
-type FetcherFunc = (accessToken: string, params?: any) => Promise<any>;
+type FetcherFunc = typeof fetchAppointments;
 type CreatorFunc = (accessToken: string, payload: CreateAppointmentPayload) => Promise<{ id: string }>;
 
 const SAFE_ERROR_MESSAGE = "Não foi possível processar os agendamentos agora. Tente novamente.";
@@ -39,7 +39,7 @@ function statusFor(error: unknown): number {
 
 export async function handleGetAppointments(
   accessToken: string | undefined,
-  params: any,
+  params: Parameters<typeof fetchAppointments>[1],
   loadProfile: ProfileLoader = fetchCurrentUser,
   fetcher: FetcherFunc = fetchAppointments,
 ): Promise<NextResponse> {

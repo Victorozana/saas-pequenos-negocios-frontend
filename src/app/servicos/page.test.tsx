@@ -6,6 +6,7 @@ const { replace } = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/servicos",
   useRouter: () => ({ replace }),
 }));
 

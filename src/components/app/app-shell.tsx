@@ -7,8 +7,8 @@ import {
   UsersRound,
   WalletCards,
 } from "lucide-react";
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { AppNavLink } from "@/components/app/app-nav-link";
 
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { UserProfile } from "@/lib/auth/backend";
@@ -81,14 +81,13 @@ export function AppShell({
             }
 
             return (
-              <Link
-                className="flex min-w-40 items-center gap-3 rounded-xl bg-blue-50 px-3 py-2.5 text-blue-700 lg:min-w-0"
+              <AppNavLink
                 href={module.href}
                 key={module.id}
               >
                 <Icon className="size-4" />
                 <span className="text-sm font-semibold">{module.label}</span>
-              </Link>
+              </AppNavLink>
             );
           })}
         </nav>

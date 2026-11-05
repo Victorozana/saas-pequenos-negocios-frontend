@@ -71,7 +71,7 @@ export const MODULES: readonly AppModule[] = [
     description: "Receitas e pagamentos",
     href: "/financeiro",
     permission: PERMISSIONS.financialRead,
-    available: false,
+    available: true,
   },
   {
     id: "team",
@@ -79,7 +79,7 @@ export const MODULES: readonly AppModule[] = [
     description: "Pessoas e permissões",
     href: "/equipe",
     permission: PERMISSIONS.teamRead,
-    available: false,
+    available: true,
   },
 ] as const;
 

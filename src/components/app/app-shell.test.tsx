@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => "/dashboard",
 }));
 
 import type { UserProfile } from "@/lib/auth/backend";

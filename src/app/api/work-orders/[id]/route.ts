@@ -6,7 +6,7 @@ import { SESSION_COOKIE_NAME, expiredSessionCookieOptions } from "@/lib/auth/ses
 import { fetchWorkOrderById, WorkOrderBackendError } from "@/lib/work-orders/backend";
 
 type ProfileLoader = (accessToken: string) => Promise<UserProfile>;
-type FetcherFunc = (accessToken: string, id: string) => Promise<any>;
+type FetcherFunc = typeof fetchWorkOrderById;
 
 const SAFE_ERROR_MESSAGE = "Não foi possível carregar a ordem de serviço agora. Tente novamente.";
 const EXPIRED_SESSION_MESSAGE = "Sua sessão expirou. Entre novamente.";
