@@ -18,7 +18,6 @@ import {
 type ProfileLoader = (accessToken: string) => Promise<UserProfile>;
 type AppointmentLoader = (
   accessToken: string,
-  userId: string,
 ) => Promise<TodayAppointment[]>;
 
 const SAFE_ERROR_MESSAGE =
@@ -38,7 +37,7 @@ function backendStatus(error: unknown): number | undefined {
 
 function isExpiredSession(error: unknown): boolean {
   const status = backendStatus(error);
-  return status !== undefined && [401, 403, 404].includes(status);
+  return status !== undefined && status === 401;
 }
 
 function statusFor(error: unknown): number {
@@ -68,7 +67,7 @@ export async function handleTodayAgenda(
 
   try {
     const user = await loadProfile(accessToken);
-    const appointments = await loadAppointments(accessToken, user.id);
+    const appointments = await loadAppointments(accessToken);
     return NextResponse.json({ user, appointments });
   } catch (error) {
     if (isExpiredSession(error)) {
@@ -84,6 +83,8 @@ export async function handleTodayAgenda(
       return response;
     }
 
+    if (backendStatus(error) === 403)
+      return NextResponse.json({ message: "Você não tem permissão para consultar a agenda." }, { status: 403 });
     return NextResponse.json(
       { message: SAFE_ERROR_MESSAGE },
       { status: statusFor(error) },

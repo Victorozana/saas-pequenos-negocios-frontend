@@ -318,13 +318,17 @@ export async function exportQuotationPdf(
   fetcher: Fetcher = fetch,
   baseUrl = getApiBaseUrl(),
 ): Promise<Blob> {
+  const path = "/api/v1/quotations/" + encodeURIComponent(quotationId) + "/pdf";
+  const correlation = crypto.randomUUID();
   let response: Response;
   try {
     response = await fetcher(
-      `${normalizeApiBaseUrl(baseUrl)}/api/v1/quotations/${quotationId}/pdf`,
+      `${normalizeApiBaseUrl(baseUrl)}${path}`,
       {
         method: "GET",
         headers: {
+          Accept: "application/pdf",
+          "X-Correlation-Id": correlation,
           Authorization: `Bearer ${accessToken}`,
         },
         cache: "no-store",
@@ -338,13 +342,18 @@ export async function exportQuotationPdf(
   }
 
   if (!response.ok) {
+    const endpointReached = response.headers.get("X-Nexo-Pdf-Route") === "1";
+    console.warn("quotation_pdf", { route: "/api/v1/quotations/{id}/pdf", status: response.status, correlation, endpointReached });
     throw new AuthBackendError(
-      response.status,
-      response.status === 401 || response.status === 403
+      response.status === 404 && !endpointReached ? 502 : response.status,
+      response.status === 401
         ? "Sua sessão expirou. Entre novamente."
         : "Não foi possível gerar o PDF agora. Tente novamente.",
     );
   }
 
-  return response.blob();
+  const blob = await response.blob();
+  if (blob.type !== "application/pdf" || await blob.slice(0, 5).text() !== "%PDF-")
+    throw new AuthBackendError(502, "O serviço retornou um arquivo PDF inválido.");
+  return blob;
 }

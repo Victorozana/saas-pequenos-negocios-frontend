@@ -55,7 +55,7 @@ describe("AgendaToday", () => {
     ).not.toContain("Rua das Flores, 10");
   });
 
-  it("shows the no-appointments CTA without a new route", async () => {
+  it("links to the agenda when the day is empty", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       Response.json({ appointments: [] }),
     );
@@ -63,12 +63,7 @@ describe("AgendaToday", () => {
     render(<AgendaToday />);
 
     expect(await screen.findByText("Nenhum agendamento para hoje")).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Criar primeiro agendamento" }),
-    ).toHaveProperty("disabled", true);
-    expect(
-      screen.queryByRole("link", { name: "Criar primeiro agendamento" }),
-    ).toBeNull();
+    expect(screen.getByRole("link", { name: "Abrir agenda" }).getAttribute("href")).toBe("/agenda");
   });
 
   it("shows a safe error after a BFF or network failure", async () => {

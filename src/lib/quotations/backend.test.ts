@@ -185,7 +185,7 @@ describe("quotations backend client", () => {
   });
 
   it("exportQuotationPdf fetches pdf binary blob", async () => {
-    const mockBlob = new Blob(["pdf content"], { type: "application/pdf" });
+    const mockBlob = new Blob(["%PDF-1.4 test"], { type: "application/pdf" });
     const mockFetcher = vi.fn().mockResolvedValue({
       ok: true,
       blob: () => Promise.resolve(mockBlob),
@@ -202,12 +202,16 @@ describe("quotations backend client", () => {
       "http://localhost:5050/api/v1/quotations/quot-1/pdf",
       expect.objectContaining({
         method: "GET",
-        headers: {
-          Authorization: "Bearer test-token",
-        },
+        headers: expect.objectContaining({ Authorization: "Bearer test-token", Accept: "application/pdf" }),
       }),
     );
     expect(result).toBe(mockBlob);
+  });
+
+  it("rejects HTML masquerading as a PDF", async () => {
+    await expect(exportQuotationPdf("token", "quot-1", async () => new Response("<html>error</html>", {
+      headers: { "Content-Type": "application/pdf" },
+    }), "http://localhost:5050")).rejects.toMatchObject({ status: 502 });
   });
 
   it("handles network and server errors gracefully with AuthBackendError", async () => {

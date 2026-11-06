@@ -36,7 +36,7 @@ describe("DashboardPage", () => {
       id: "6c67977e-6965-4ab5-999a-0b56bf129eb7",
       name: "Vitória Lima",
       email: "vitoria@example.com",
-      role: "Admin",
+      role: "Colaborador",
       tenantId: "0cbad8e6-caf7-47fe-85b0-b6c3e219689f",
       permissions: ["appointments.read"],
       status: "Active",
@@ -45,8 +45,8 @@ describe("DashboardPage", () => {
     render(await DashboardPage());
 
     expect(screen.getByRole("heading", { name: "Olá, Vitória." })).toBeTruthy();
-    expect(screen.getAllByText("Admin").length).toBeGreaterThan(0);
-    expect(screen.getByText("Resumo executivo de métricas")).toBeTruthy();
+    expect(screen.getAllByText("Colaborador").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Resumo executivo de métricas")).toBeNull();
     expect(screen.getByText("Agenda de hoje carregada")).toBeTruthy();
   });
 });

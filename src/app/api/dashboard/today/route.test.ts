@@ -38,7 +38,7 @@ describe("today agenda BFF route", () => {
     const responseCopy = response.clone();
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ user, appointments });
-    expect(loadAppointments).toHaveBeenCalledWith("private-token", user.id);
+    expect(loadAppointments).toHaveBeenCalledWith("private-token");
     expect(await responseCopy.text()).not.toContain("private-token");
   });
 
@@ -75,7 +75,15 @@ describe("today agenda BFF route", () => {
     });
   });
 
-  it.each([401, 403, 404])(
+  it.each([[403, 403], [404, 502]])("keeps the session on agenda error %i", async (upstream, status) => {
+    const response = await handleTodayAgenda("valid-token", async () => user, async () => {
+      throw new AuthBackendError(upstream, "Agenda failed");
+    });
+    expect(response.status).toBe(status);
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it.each([401])(
     "expires the cookie when the backend rejects a session with %i",
     async (status) => {
       const response = await handleTodayAgenda(

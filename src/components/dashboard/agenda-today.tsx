@@ -4,23 +4,17 @@ import { CalendarPlus2, Clock3, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { appointmentTypes, formatAgendaTime } from "@/lib/appointments/time";
 import type { TodayAppointment } from "@/lib/appointments/backend";
 
 type AgendaState =
   | { kind: "loading" }
   | { kind: "ready"; appointments: TodayAppointment[] }
-  | { kind: "error" };
+  | { kind: "error"; denied?: boolean };
 
 const SAFE_ERROR_MESSAGE =
   "Não foi possível carregar sua agenda agora. Tente novamente.";
-
-function formatTime(value: string): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
 
 function AgendaSkeleton() {
   return (
@@ -36,17 +30,21 @@ function AgendaSkeleton() {
   );
 }
 
-export function AgendaToday() {
+export function AgendaToday({ administrator = false }: { administrator?: boolean }) {
   const { replace, refresh } = useRouter();
   const [state, setState] = useState<AgendaState>({ kind: "loading" });
 
   useEffect(() => {
     let active = true;
+    let controller: AbortController | undefined;
 
     async function loadAgenda() {
+      controller?.abort();
+      const request = new AbortController();
+      controller = request;
       try {
         const response = await fetch("/api/dashboard/today", {
-          cache: "no-store",
+          cache: "no-store", signal: request.signal,
         });
 
         if (response.status === 401) {
@@ -55,6 +53,10 @@ export function AgendaToday() {
           return;
         }
 
+        if (response.status === 403) {
+          if (active) setState({ kind: "error", denied: true });
+          return;
+        }
         if (!response.ok) throw new Error("Agenda request failed");
 
         const body: unknown = await response.json();
@@ -66,7 +68,7 @@ export function AgendaToday() {
           throw new Error("Invalid agenda payload");
         }
 
-        if (active) {
+        if (active && !request.signal.aborted) {
           setState({
             kind: "ready",
             appointments: (body as { appointments: TodayAppointment[] }).appointments
@@ -79,13 +81,23 @@ export function AgendaToday() {
           });
         }
       } catch {
-        if (active) setState({ kind: "error" });
+        if (active && !request.signal.aborted) setState({ kind: "error" });
       }
     }
 
+    function reloadVisible() {
+      if (document.visibilityState === "visible") void loadAgenda();
+    }
     void loadAgenda();
+    const timer = setInterval(reloadVisible, 60_000);
+    window.addEventListener("focus", reloadVisible);
+    document.addEventListener("visibilitychange", reloadVisible);
     return () => {
       active = false;
+      controller?.abort();
+      clearInterval(timer);
+      window.removeEventListener("focus", reloadVisible);
+      document.removeEventListener("visibilitychange", reloadVisible);
     };
   }, [refresh, replace]);
 
@@ -95,7 +107,7 @@ export function AgendaToday() {
         <div>
           <p className="text-sm font-semibold text-slate-950">Agenda de hoje</p>
           <p className="mt-1 text-sm text-slate-500">
-            Seus atendimentos atribuídos para hoje.
+            {administrator ? "Compromissos da empresa para hoje." : "Seus atendimentos atribuídos para hoje."}
           </p>
         </div>
         <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700">
@@ -108,7 +120,7 @@ export function AgendaToday() {
 
         {state.kind === "error" && (
           <div className="rounded-xl border border-rose-100 bg-rose-50 p-4 text-sm text-rose-800" role="alert">
-            {SAFE_ERROR_MESSAGE}
+            {state.denied ? "Você não tem permissão para consultar a agenda." : SAFE_ERROR_MESSAGE}
           </div>
         )}
 
@@ -118,12 +130,7 @@ export function AgendaToday() {
             <p className="mt-3 font-medium text-slate-800">
               Nenhum agendamento para hoje
             </p>
-            <p className="mt-1 text-sm text-slate-500">
-              Quando a criação estiver disponível, você poderá iniciar por aqui.
-            </p>
-            <Button className="mt-5" disabled type="button">
-              Criar primeiro agendamento
-            </Button>
+            <Link href="/agenda" className="mt-3 inline-block text-sm font-medium text-blue-700">Abrir agenda</Link>
           </div>
         )}
 
@@ -135,10 +142,11 @@ export function AgendaToday() {
                 key={appointment.id}
               >
                 <p className="w-24 shrink-0 text-sm font-semibold text-slate-950">
-                  {formatTime(appointment.startTime)} – {formatTime(appointment.endTime)}
+                  {formatAgendaTime(appointment.startTime)} – {formatAgendaTime(appointment.endTime)}
                 </p>
                 <div className="min-w-0">
-                  <p className="font-medium text-slate-800">{appointment.type}</p>
+                  <p className="font-medium text-slate-800">{appointmentTypes[appointment.type] ?? appointment.type}{appointment.workOrderCode && " · " + appointment.workOrderCode}</p>
+                  {administrator && <p className="text-sm text-slate-500">{appointment.participants?.map((person) => person.name).join(", ") || "Sem responsável"}</p>}
                   {appointment.address && (
                     <p className="mt-1 flex items-center gap-1.5 text-sm text-slate-500">
                       <MapPin className="size-3.5 shrink-0" />

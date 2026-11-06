@@ -2,6 +2,13 @@ import { normalizeApiBaseUrl } from "@/lib/api/client";
 import { getApiBaseUrl } from "@/lib/auth/backend";
 import type { components } from "@/lib/api/generated/schema";
 
+export type ScheduleWorkOrderRequest = components["schemas"]["ScheduleWorkOrderRequest"];
+export type ScheduledWorkOrder = components["schemas"]["ScheduledWorkOrder"];
+export type ScheduleParticipant = components["schemas"]["ScheduleParticipant"];
+export type WorkOrderPage = Omit<components["schemas"]["WorkOrderPage"], "page" | "pageSize" | "total"> & {
+  page: number; pageSize: number; total: number;
+};
+
 export type WorkOrderStatus =
   | "Scheduled"
   | "InProgress"
@@ -58,16 +65,21 @@ export class WorkOrderBackendError extends Error {
 export async function convertQuotationToWorkOrder(
   accessToken: string,
   quotationId: string,
+  payload: ScheduleWorkOrderRequest,
+  key: string,
   fetcher: Fetcher = fetch,
   baseUrl = getApiBaseUrl(),
 ): Promise<{ id: string }> {
   let response: Response;
   try {
     response = await fetcher(
-      `${normalizeApiBaseUrl(baseUrl)}/api/v1/quotations/${quotationId}/convert`,
+      `${normalizeApiBaseUrl(baseUrl)}/api/v1/work-orders/from-quotation/${encodeURIComponent(quotationId)}`,
       {
         method: "POST",
+        body: JSON.stringify(payload),
         headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": key,
           Accept: "application/json",
           Authorization: `Bearer ${accessToken}`,
         },
@@ -85,17 +97,17 @@ export async function convertQuotationToWorkOrder(
       response.status,
       typeof title === "string" && title.trim()
         ? title
-        : response.status === 401 || response.status === 403
+        : response.status === 401
           ? "Sua sessão expirou. Entre novamente."
           : "Não foi possível converter o orçamento em ordem de serviço.",
     );
   }
 
-  const payload: components["schemas"]["WorkOrderConversionResponse"] | null = await response.json().catch(() => null);
-  if (!payload || typeof payload.workOrderId !== "string" || !payload.workOrderId.trim()) {
+  const result: components["schemas"]["CreatedIdResponse"] | null = await response.json().catch(() => null);
+  if (!result || typeof result.id !== "string" || !result.id.trim()) {
     throw new WorkOrderBackendError(502, "O serviço retornou uma conversão inválida.");
   }
-  return { id: payload.workOrderId };
+  return { id: result.id };
 }
 
 export async function fetchWorkOrderById(

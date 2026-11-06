@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 import { useState } from "react";
+import type { ScheduleParticipant } from "@/lib/work-orders/backend";
+import { fromAgendaInput } from "@/lib/appointments/time";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,16 +12,16 @@ type AppointmentModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onSaved: () => void;
-  initialWorkOrderId?: string;
+  people?: ScheduleParticipant[];
 };
 
-export function AppointmentModal({ isOpen, onClose, onSaved, initialWorkOrderId = "" }: AppointmentModalProps) {
+export function AppointmentModal({ isOpen, onClose, onSaved, people }: AppointmentModalProps) {
   const [type, setType] = useState("1"); // 1=TechnicalVisit
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [workOrderId, setWorkOrderId] = useState(initialWorkOrderId);
+  const [assignee, setAssignee] = useState("");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -39,11 +41,11 @@ export function AppointmentModal({ isOpen, onClose, onSaved, initialWorkOrderId 
 
       const payload = {
         type: parseInt(type, 10),
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
+        startTime: fromAgendaInput(startTime),
+        endTime: fromAgendaInput(endTime),
         address: address || undefined,
         notes: notes || undefined,
-        workOrderId: workOrderId.trim() || undefined,
+        assignedToUserId: assignee || undefined,
       };
 
       const res = await fetch("/api/appointments", {
@@ -136,15 +138,13 @@ export function AppointmentModal({ isOpen, onClose, onSaved, initialWorkOrderId 
             />
           </div>
           
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-700">ID da OS Vinculada (opcional)</label>
-            <Input
-              value={workOrderId}
-              onChange={(e) => setWorkOrderId(e.target.value)}
-              placeholder="Ex: 123e4567-e89b-12d3..."
-            />
-          </div>
 
+          {people && <label className="grid gap-2 text-sm font-medium text-slate-700">Responsável
+            <select value={assignee} onChange={(event) => setAssignee(event.target.value)} className="rounded-xl border p-2">
+              <option value="">Sem responsável</option>
+              {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+            </select>
+          </label>}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-slate-700">Observações</label>
             <textarea

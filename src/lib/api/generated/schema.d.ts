@@ -299,6 +299,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/work-orders/participants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetWorkOrderParticipants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders/{id}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateWorkOrderSchedule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListWorkOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/work-orders/{id}": {
         parameters: {
             query?: never;
@@ -341,6 +389,22 @@ export interface paths {
         get: operations["GetAppointments"];
         put?: never;
         post: operations["CreateAppointment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/appointments/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTodayAppointments"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -696,20 +760,23 @@ export interface components {
             password: string;
             name: string | null;
         };
-        AppointmentResponse: {
+        AgendaVisit: {
             /** Format: uuid */
-            id?: string;
+            id: string;
             /** Format: uuid */
-            workOrderId?: string | null;
-            type?: string;
+            workOrderId: string | null;
+            type: string;
             /** Format: date-time */
-            startTime?: string;
+            startTime: string;
             /** Format: date-time */
-            endTime?: string;
-            address?: string | null;
-            notes?: string | null;
+            endTime: string;
+            address: string | null;
+            notes: string | null;
             /** Format: uuid */
-            assignedToUserId?: string | null;
+            assignedToUserId: string | null;
+            workOrderCode: string | null;
+            workOrderStatus: string | null;
+            participants: components["schemas"]["ScheduleParticipant"][];
         };
         AppointmentType: number;
         ChangePlanCommand: {
@@ -1082,6 +1149,44 @@ export interface components {
             /** Format: uuid */
             appointmentId: string;
         };
+        ScheduledVisit: {
+            /** Format: uuid */
+            id: string;
+            type: components["schemas"]["AppointmentType"];
+            /** Format: date-time */
+            startTime: string;
+            /** Format: date-time */
+            endTime: string;
+            address: string | null;
+            notes: string | null;
+        };
+        ScheduledWorkOrder: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            /** Format: uuid */
+            quotationId: string;
+            status: string;
+            participants: components["schemas"]["ScheduleParticipant"][];
+            visit: unknown | components["schemas"]["ScheduledVisit"];
+            needsRegularization: boolean;
+        };
+        ScheduleParticipant: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            isActive: boolean;
+        };
+        ScheduleWorkOrderRequest: {
+            type: components["schemas"]["AppointmentType"];
+            /** Format: date-time */
+            startTime: string;
+            /** Format: date-time */
+            endTime: string;
+            participantIds: string[];
+            address: string | null;
+            notes: string | null;
+        };
         SendInvitationRequest: {
             email: string;
             role: string;
@@ -1172,11 +1277,11 @@ export interface components {
         };
         UpdateAppointmentRequest: {
             /** Format: date-time */
-            startTime?: string;
+            startTime: string;
             /** Format: date-time */
-            endTime?: string;
+            endTime: string;
             /** Format: uuid */
-            assignedToUserId?: string | null;
+            assignedToUserId: string | null;
         };
         UpdateCustomerCommand: {
             /** Format: uuid */
@@ -1279,7 +1384,17 @@ export interface components {
             /** Format: double */
             totalAmount?: unknown;
         };
+        WorkOrderPage: {
+            items: components["schemas"]["ScheduledWorkOrder"][];
+            /** Format: int32 */
+            page: unknown;
+            /** Format: int32 */
+            pageSize: unknown;
+            /** Format: int32 */
+            total: unknown;
+        };
         WorkOrderResponse: {
+            schedule?: unknown | components["schemas"]["ScheduledWorkOrder"];
             /** Format: uuid */
             id?: string;
             code?: string;
@@ -2626,13 +2741,19 @@ export interface operations {
     ConvertQuotationToWorkOrderInQuotation: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 id: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleWorkOrderRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -2663,6 +2784,31 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2744,18 +2890,24 @@ export interface operations {
     ConvertQuotationToWorkOrder: {
         parameters: {
             query?: never;
-            header?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
             path: {
                 quotationId: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleWorkOrderRequest"];
+            };
+        };
         responses: {
             /** @description Created */
             201: {
                 headers: {
-                    /** @description Caminho relativo da OS criada ou já existente, acessível com sales.read. */
+                    /** @description Caminho relativo da OS. */
                     Location?: string;
                     [name: string]: unknown;
                 };
@@ -2789,6 +2941,230 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetWorkOrderParticipants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScheduleParticipant"][];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateWorkOrderSchedule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleWorkOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Tipo de conteúdo não suportado. */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListWorkOrders: {
+        parameters: {
+            query?: {
+                quotationId?: string;
+                participantId?: string;
+                start?: string;
+                end?: string;
+                status?: components["schemas"]["WorkOrderStatus"];
+                page?: unknown;
+                pageSize?: unknown;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkOrderPage"];
+                };
+            };
+            /** @description Dados da requisição inválidos. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
             500: {
@@ -2835,9 +3211,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
+                content?: never;
             };
             /** @description Not Found */
             404: {
@@ -2913,6 +3287,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Tipo de conteúdo não suportado. */
             415: {
                 headers: {
@@ -2953,7 +3336,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppointmentResponse"][];
+                    "application/json": components["schemas"]["AgendaVisit"][];
                 };
             };
             /** @description Dados da requisição inválidos. */
@@ -3043,8 +3426,64 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
             /** @description Tipo de conteúdo não suportado. */
             415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Falha inesperada: resposta ProblemDetails segura, sem detalhes internos. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTodayAppointments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgendaVisit"][];
+                };
+            };
+            /** @description Sessão ausente, inválida ou revogada. Resposta sem corpo. */
+            401: {
+                headers: {
+                    /** @description Desafio de autenticação Bearer. */
+                    "WWW-Authenticate"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3118,6 +3557,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
             /** @description Tipo de conteúdo não suportado. */
             415: {

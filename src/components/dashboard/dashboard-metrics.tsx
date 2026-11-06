@@ -37,7 +37,7 @@ export function DashboardMetrics() {
       try {
         const response = await fetch("/api/dashboard/summary");
         if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
+          if (response.status === 401) {
             window.location.href = "/login";
             return;
           }
@@ -79,7 +79,7 @@ export function DashboardMetrics() {
     try {
       const response = await fetch("/api/dashboard/report");
       if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           window.location.href = "/login";
           return;
         }

@@ -35,7 +35,7 @@ function backendStatus(error: unknown): number | undefined {
 
 function isExpiredSession(error: unknown): boolean {
   const status = backendStatus(error);
-  return status !== undefined && [401, 403, 404].includes(status);
+  return status !== undefined && status === 401;
 }
 
 function statusFor(error: unknown): number {
@@ -81,6 +81,8 @@ export async function handleDashboardSummary(
       return response;
     }
 
+    if (backendStatus(error) === 403)
+      return NextResponse.json({ message: "Você não tem permissão para consultar estes dados." }, { status: 403 });
     return NextResponse.json(
       { message: SAFE_ERROR_MESSAGE },
       { status: statusFor(error) },

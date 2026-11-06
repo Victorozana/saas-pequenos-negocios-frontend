@@ -86,6 +86,7 @@ export default function OrcamentosPage() {
         </div>
 
         <QuotationList
+          canSchedule={["admin", "owner_admin"].includes(user.role.toLowerCase()) && user.permissions.includes("appointments.write") && user.permissions.includes("sales.write")}
           onNewQuotation={handleOpenModal}
           refreshTrigger={refreshTrigger}
         />

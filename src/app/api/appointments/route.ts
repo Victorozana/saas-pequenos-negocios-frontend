@@ -28,11 +28,12 @@ function backendStatus(error: unknown): number | undefined {
 
 function isExpiredSession(error: unknown): boolean {
   const status = backendStatus(error);
-  return status !== undefined && [401, 403].includes(status);
+  return status !== undefined && status === 401;
 }
 
 function statusFor(error: unknown): number {
   const status = backendStatus(error);
+  if (status === 403 || status === 404 || status === 409) return status;
   if (status !== undefined) return status >= 500 ? 503 : 502;
   return 502;
 }
@@ -85,8 +86,8 @@ export async function handleCreateAppointment(
       response.cookies.set(SESSION_COOKIE_NAME, "", expiredSessionCookieOptions());
       return response;
     }
-    if (error instanceof AppointmentBackendError && error.status === 400) {
-      return NextResponse.json({ message: error.message }, { status: 400 });
+    if (error instanceof AppointmentBackendError && [400, 409].includes(error.status)) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
     }
     return NextResponse.json({ message: SAFE_ERROR_MESSAGE }, { status: statusFor(error) });
   }

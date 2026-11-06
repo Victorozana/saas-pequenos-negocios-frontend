@@ -1,6 +1,7 @@
 "use client";
 
-import { AppointmentModal } from "@/components/agenda/appointment-modal";
+import { WorkOrderScheduleForm } from "@/components/agenda/work-order-schedule-form";
+import Link from "next/link";
 import { QuotationModal } from "@/components/quotations/quotation-modal";
 
 import {
@@ -34,6 +35,7 @@ import type { PaginatedQuotations, QuotationStatus, QuotationDetail } from "@/li
 interface QuotationListProps {
   onNewQuotation: () => void;
   refreshTrigger?: number;
+  canSchedule?: boolean;
 }
 
 function formatCurrency(value: number): string {
@@ -64,6 +66,7 @@ const statusConfig: Record<QuotationStatus, { label: string; colorClass: string;
 export function QuotationList({
   onNewQuotation,
   refreshTrigger = 0,
+  canSchedule = false,
 }: QuotationListProps) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -73,8 +76,7 @@ export function QuotationList({
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PaginatedQuotations | null>(null);
   const [localRefresh, setLocalRefresh] = useState(0);
-  const [generatedOrderId, setGeneratedOrderId] = useState<string | null>(null);
-  const [schedulingOrder, setSchedulingOrder] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [quotationToEdit, setQuotationToEdit] = useState<QuotationDetail | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -167,35 +169,15 @@ export function QuotationList({
     }
   };
 
-  const handleConvertToOS = async (id: string) => {
-    if (convertingId) return;
-    setConvertingId(id);
-    try {
-      const res = await fetch(`/api/quotations/${id}/convert`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.message || "Não foi possível gerar a Ordem de Serviço.");
-        return;
-      }
-      const data = await res.json();
-      setGeneratedOrderId(data.id);
-      setError(null);
-      setLocalRefresh((prev) => prev + 1);
-    } catch {
-      setError("Não foi possível gerar a Ordem de Serviço agora.");
-    } finally {
-      setConvertingId(null);
-    }
-  };
-
   const handleDownloadPdf = async (id: string) => {
     try {
       const res = await fetch(`/api/quotations/${id}/export`);
-      if (!res.ok) throw new Error();
-      
+      if (!res.ok) {
+        const result = await res.json().catch(() => null);
+        throw new Error(result?.message || "Não foi possível exportar o PDF do orçamento.");
+      }
       const blob = await res.blob();
+      if (blob.type !== "application/pdf") throw new Error("O serviço retornou um arquivo inválido.");
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -203,9 +185,9 @@ export function QuotationList({
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      alert("Não foi possível exportar o PDF do orçamento.");
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Não foi possível exportar o PDF do orçamento.");
     }
   };
 
@@ -213,14 +195,17 @@ export function QuotationList({
 
   return (
     <div className="space-y-4">
-      {generatedOrderId && (
+      {scheduled && (
         <div role="status" className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
           Ordem de serviço salva com sucesso.
-          <Button className="ml-3" onClick={() => setSchedulingOrder(true)}>Agendar esta OS</Button>
+          <Link className="ml-3 underline" href="/agenda">Ver na agenda</Link>
         </div>
       )}
       <QuotationModal isOpen={quotationToEdit !== null} quotationToEdit={quotationToEdit} onClose={() => setQuotationToEdit(null)} onSaved={() => setLocalRefresh(previous => previous + 1)} />
-      {schedulingOrder && generatedOrderId && <AppointmentModal key={generatedOrderId} isOpen={true} initialWorkOrderId={generatedOrderId} onClose={() => setSchedulingOrder(false)} onSaved={() => setSchedulingOrder(false)} />}
+      {convertingId && <WorkOrderScheduleForm endpoint={"/api/quotations/" + convertingId + "/convert"}
+        onClose={() => setConvertingId(null)} onSaved={() => {
+          setConvertingId(null); setScheduled(true); setLocalRefresh((value) => value + 1);
+        }} />}
       {/* Top Bar: Search, Filters & Action CTA */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-1 max-w-2xl">
@@ -367,7 +352,7 @@ export function QuotationList({
                         )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-500 hover:text-slate-900">
+                            <Button size="icon" variant="ghost" aria-label={"Ações do orçamento " + quotation.code} className="h-8 w-8 text-slate-500 hover:text-slate-900">
                               <MoreVertical className="size-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -390,11 +375,14 @@ export function QuotationList({
                                 Marcar como Aprovado
                               </DropdownMenuItem>
                             )}
-                            {quotation.status === "Approved" && (
-                              <DropdownMenuItem disabled={convertingId !== null} onClick={() => handleConvertToOS(quotation.id)}>
+                            {canSchedule && (quotation.status === "Approved" || quotation.status === "Converted") && (
+                              <DropdownMenuItem disabled={convertingId !== null} onClick={() => setConvertingId(quotation.id)}>
                                 <BriefcaseBusiness className="mr-2 size-4 text-emerald-600" />
-                                Gerar Ordem de Serviço (OS)
+                                Criar ordem de serviço
                               </DropdownMenuItem>
+                            )}
+                            {canSchedule && quotation.status === "Converted" && (
+                              <DropdownMenuItem asChild><Link href={"/agenda?quotationId=" + quotation.id}>Ver ordens deste orçamento</Link></DropdownMenuItem>
                             )}
                             {quotation.status === "Pending" && (
                               <DropdownMenuItem onClick={() => handleUpdateStatus(quotation.id, "Rejected")}>

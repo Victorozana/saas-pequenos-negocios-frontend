@@ -100,6 +100,12 @@ npm run test
 npm run build
 ```
 
+## Regressão de agenda, OS e PDF
+
+Com os dois repositórios no mesmo diretório pai e PostgreSQL de teste configurado no backend, rode `npm ci`, `npx playwright install chromium` e `pwsh ./scripts/regression.ps1`. O comando executa as suítes dos dois repositórios e um teste Chromium que baixa um PDF real, agenda OS individuais e em equipe e confirma a visibilidade em sessões distintas. Ele inicia serviços temporários nas portas 5075 e 3075 e usa uma caixa local de e-mail descartável.
+
+Use `-BrowserOnly` para repetir somente o fluxo no navegador e `-BackendPath` para indicar outro checkout. A API de navegador usa memória por padrão. Em CI, a regressão usa PostgreSQL temporário com credenciais separadas. Se o repositório do backend for privado, configure `REGRESSION_REPO_TOKEN` com acesso de leitura para o checkout. O workflow aceita o SHA do backend como entrada e registra os dois SHAs testados.
+
 ## Repositório relacionado
 
 O backend canônico está em `C:\\Users\\victo\\OneDrive\\Documentos\\projetos\\agendamento` e é a fonte de verdade para o contrato HTTP usado por esta aplicação.

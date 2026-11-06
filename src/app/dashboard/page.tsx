@@ -34,10 +34,10 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <DashboardMetrics />
+        {user.permissions.includes("sales.read") && <DashboardMetrics />}
 
         <div className="pt-2">
-          <AgendaToday />
+          <AgendaToday administrator={["admin", "owner_admin"].includes(user.role.toLowerCase())} />
         </div>
       </section>
     </AppShell>

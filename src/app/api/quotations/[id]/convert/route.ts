@@ -1,73 +1,29 @@
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
-
-import { fetchCurrentUser, type UserProfile } from "@/lib/auth/backend";
 import { SESSION_COOKIE_NAME, expiredSessionCookieOptions } from "@/lib/auth/session-cookie";
 import { convertQuotationToWorkOrder, WorkOrderBackendError } from "@/lib/work-orders/backend";
 
-type ProfileLoader = (accessToken: string) => Promise<UserProfile>;
-type Converter = (accessToken: string, quotationId: string) => Promise<{ id: string }>;
-
-const SAFE_ERROR_MESSAGE = "Não foi possível processar a conversão de orçamento agora. Tente novamente.";
-const EXPIRED_SESSION_MESSAGE = "Sua sessão expirou. Entre novamente.";
-
-function backendStatus(error: unknown): number | undefined {
-  if (error instanceof WorkOrderBackendError) return error.status;
-  if (error instanceof Error && "status" in error) {
-    const status = (error as { status?: unknown }).status;
-    if (typeof status === "number") return status;
-  }
-  return undefined;
-}
-
-function isExpiredSession(error: unknown): boolean {
-  const status = backendStatus(error);
-  return status !== undefined && [401, 403].includes(status);
-}
-
-function statusFor(error: unknown): number {
-  const status = backendStatus(error);
-  if (status !== undefined) return status >= 500 ? 503 : 502;
-  return 502;
-}
-
-export async function handleConvertQuotation(
-  accessToken: string | undefined,
-  quotationId: string,
-  loadProfile: ProfileLoader = fetchCurrentUser,
-  convert: Converter = convertQuotationToWorkOrder,
-): Promise<NextResponse> {
-  if (!accessToken) {
-    const response = NextResponse.json({ message: EXPIRED_SESSION_MESSAGE }, { status: 401 });
-    response.cookies.set(SESSION_COOKIE_NAME, "", expiredSessionCookieOptions());
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
+  const origin = request.headers.get("origin");
+  if (origin && origin !== request.nextUrl.origin)
+    return NextResponse.json({ message: "Origem inválida." }, { status: 403 });
+  const key = request.headers.get("Idempotency-Key");
+  const payload = await request.json().catch(() => null);
+  if (!key || !payload)
+    return NextResponse.json({ message: "Informe os dados da ordem de serviço." }, { status: 400 });
+  try {
+    if (!token) throw new WorkOrderBackendError(401, "Sua sessão expirou. Entre novamente.");
+    const result = await convertQuotationToWorkOrder(token, (await params).id, payload, key);
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    const status = error instanceof WorkOrderBackendError ? error.status : 502;
+    const message = status === 403 ? "Você não tem permissão para criar uma OS."
+      : status === 404 ? "Orçamento não encontrado."
+      : error instanceof WorkOrderBackendError && [400, 401, 409].includes(status) ? error.message
+      : "Não foi possível criar a ordem de serviço agora. Tente novamente.";
+    const response = NextResponse.json({ message }, { status: status >= 500 ? 503 : status });
+    if (status === 401) response.cookies.set(SESSION_COOKIE_NAME, "", expiredSessionCookieOptions());
     return response;
   }
-
-  try {
-    await loadProfile(accessToken);
-    const result = await convert(accessToken, quotationId);
-    return NextResponse.json(result, { status: 200 });
-  } catch (error) {
-    if (isExpiredSession(error)) {
-      const response = NextResponse.json({ message: EXPIRED_SESSION_MESSAGE }, { status: 401 });
-      response.cookies.set(SESSION_COOKIE_NAME, "", expiredSessionCookieOptions());
-      return response;
-    }
-
-    if (error instanceof WorkOrderBackendError && error.status === 400) {
-      return NextResponse.json({ message: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ message: SAFE_ERROR_MESSAGE }, { status: statusFor(error) });
-  }
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-): Promise<NextResponse> {
-  const { id } = await params;
-  const cookieStore = await cookies();
-
-  return handleConvertQuotation(cookieStore.get(SESSION_COOKIE_NAME)?.value, id);
 }

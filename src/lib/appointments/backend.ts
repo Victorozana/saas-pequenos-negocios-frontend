@@ -6,7 +6,10 @@ export type TodayAppointment = {
   type: string;
   startTime: string;
   endTime: string;
-  address?: string;
+  address?: string | null;
+  workOrderCode?: string | null;
+  workOrderStatus?: string | null;
+  participants?: { id: string; name: string; isActive: boolean }[];
 };
 
 type Fetcher = (
@@ -35,36 +38,16 @@ function isTodayAppointment(value: unknown): value is TodayAppointment {
     !Number.isNaN(Date.parse(appointment.startTime)) &&
     typeof appointment.endTime === "string" &&
     !Number.isNaN(Date.parse(appointment.endTime)) &&
-    (appointment.address === undefined || typeof appointment.address === "string")
+    (appointment.address == null || typeof appointment.address === "string")
   );
-}
-
-function currentDayRange(now: Date): { startDate: string; endDate: string } {
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 1);
-
-  return { startDate: start.toISOString(), endDate: end.toISOString() };
 }
 
 export async function fetchTodayAppointments(
   accessToken: string,
-  assignedToUserId: string,
   fetcher: Fetcher = fetch,
   baseUrl = getApiBaseUrl(),
-  now = new Date(),
 ): Promise<TodayAppointment[]> {
-  const range = currentDayRange(now);
-  const url = new URL(
-    "/api/v1/appointments/",
-    `${normalizeApiBaseUrl(baseUrl)}/`,
-  );
-  url.search = new URLSearchParams({
-    ...range,
-    assignedToUserId,
-  }).toString();
+  const url = new URL("/api/v1/appointments/today", normalizeApiBaseUrl(baseUrl));
 
   let response: Response;
   try {

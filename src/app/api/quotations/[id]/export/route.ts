@@ -35,7 +35,7 @@ function backendStatus(error: unknown): number | undefined {
 
 function isExpiredSession(error: unknown): boolean {
   const status = backendStatus(error);
-  return status !== undefined && [401, 403].includes(status);
+  return status !== undefined && status === 401;
 }
 
 function statusFor(error: unknown): number {
@@ -71,6 +71,7 @@ export async function handleExportQuotation(
     // Converte o Blob para ReadableStream para Next.js response
     const headers = new Headers();
     headers.set("Content-Type", "application/pdf");
+    headers.set("Cache-Control", "no-store");
     headers.set("Content-Disposition", `attachment; filename="orcamento-${quotationId}.pdf"`);
 
     return new NextResponse(blob, {
@@ -90,6 +91,9 @@ export async function handleExportQuotation(
       );
       return response;
     }
+
+    if (backendStatus(error) === 403)
+      return NextResponse.json({ message: "Você não tem permissão para exportar este orçamento." }, { status: 403 });
 
     if (backendStatus(error) === 404) {
       return NextResponse.json(

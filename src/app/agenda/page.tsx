@@ -7,29 +7,23 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { Button } from "@/components/ui/button";
 import { type UserProfile } from "@/lib/auth/backend";
+import { Field, fieldClass } from "@/components/app/module-ui";
+import type { ScheduleParticipant } from "@/lib/work-orders/backend";
+import { WorkOrderList } from "@/components/agenda/work-order-list";
+import { agendaTimeZone, appointmentTypes, formatAgendaTime } from "@/lib/appointments/time";
+import type { components } from "@/lib/api/generated/schema";
 import { AppointmentModal } from "@/components/agenda/appointment-modal";
 
-type Appointment = {
-  id: string;
-  type: string;
-  startTime: string;
-  endTime: string;
-  address?: string;
-  workOrderId?: string;
-};
-
-const APPOINTMENT_TYPES: Record<string, string> = {
-  TechnicalVisit: "Visita Técnica",
-  Measurement: "Medição",
-  Installation: "Instalação",
-  Other: "Outro"
-};
+type Appointment = components["schemas"]["AgendaVisit"];
 
 export default function AgendaPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   
+  const [participant, setParticipant] = useState("");
+  const [people, setPeople] = useState<ScheduleParticipant[]>([]);
+  const [quotationId, setQuotationId] = useState<string>();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,7 +41,10 @@ export default function AgendaPage() {
           return;
         }
         const data = await response.json();
-        if (isMounted) setUser(data.user);
+        if (isMounted) {
+          setUser(data.user);
+          setQuotationId(new URL(window.location.href).searchParams.get("quotationId") ?? undefined);
+        }
       } catch {
         router.replace("/login");
       } finally {
@@ -65,23 +62,37 @@ export default function AgendaPage() {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch("/api/appointments");
-        if (!res.ok) throw new Error("Failed to load appointments");
+        const filter = participant ? "?assignedToUserId=" + encodeURIComponent(participant) : "";
+        const res = await fetch("/api/appointments" + filter, { cache: "no-store" });
+        if (res.status === 401) { router.replace("/login"); return; }
+        if (!res.ok) throw new Error(res.status === 403 ? "Você não tem permissão para consultar a agenda." : "Não foi possível carregar a agenda.");
         const data = await res.json();
         if (isMounted) setAppointments(data);
-      } catch {
-        if (isMounted) setError("Não foi possível carregar a agenda.");
+      } catch (failure) {
+        if (isMounted) setError(failure instanceof Error ? failure.message : "Não foi possível carregar a agenda.");
       } finally {
         if (isMounted) setLoading(false);
       }
     }
     loadAppointments();
     return () => { isMounted = false; };
-  }, [user, refreshTrigger]);
+  }, [user, refreshTrigger, router, participant]);
 
   const handleSaved = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
+
+  const administrator = !!user && ["admin", "owner_admin"].includes(user.role.toLowerCase());
+  const canManage = !!user && administrator && user.permissions.includes("sales.write") && user.permissions.includes("appointments.write");
+
+  useEffect(() => {
+    if (!canManage) return;
+    const controller = new AbortController();
+    fetch("/api/work-orders/participants", { signal: controller.signal })
+      .then(async (response) => { if (response.ok) setPeople(await response.json()); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [canManage]);
 
   if (loadingUser) {
     return (
@@ -102,14 +113,20 @@ export default function AgendaPage() {
             Acompanhe e gerencie visitas, medições e instalações.
           </p>
         </div>
-        <Button
+        {user.permissions.includes("appointments.write") && <Button
           onClick={() => setIsModalOpen(true)}
           className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
         >
           <Plus className="size-4" /> Novo Agendamento
-        </Button>
+        </Button>}
       </div>
 
+      {canManage && <div className="mb-4 max-w-xs"><Field label="Compromissos por funcionário">
+        <select className={fieldClass} value={participant} onChange={(event) => setParticipant(event.target.value)}>
+          <option value="">Toda a equipe</option>
+          {people.map((person) => <option key={person.id} value={person.id}>{person.name}</option>)}
+        </select>
+      </Field></div>}
       {error && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
           {error}
@@ -136,8 +153,7 @@ export default function AgendaPage() {
         <div className="grid gap-4">
           {appointments.map((apt) => {
             const start = new Date(apt.startTime);
-            const end = new Date(apt.endTime);
-            const typeLabel = APPOINTMENT_TYPES[apt.type] || apt.type;
+            const typeLabel = appointmentTypes[apt.type] || apt.type;
 
             return (
               <div key={apt.id} className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -147,11 +163,11 @@ export default function AgendaPage() {
                       {typeLabel}
                     </span>
                     <span className="text-sm font-medium text-slate-900">
-                      {start.toLocaleDateString()}
+                      {start.toLocaleDateString("pt-BR", { timeZone: agendaTimeZone })}
                     </span>
                   </div>
                   <div className="text-lg font-bold text-slate-900">
-                    {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatAgendaTime(apt.startTime)} – {formatAgendaTime(apt.endTime)}
                   </div>
                 </div>
                 
@@ -159,9 +175,10 @@ export default function AgendaPage() {
                   {apt.workOrderId && (
                     <div className="flex items-center gap-1.5 text-sm text-slate-600">
                       <BriefcaseBusiness className="size-4" />
-                      OS Vinculada
+                      {apt.workOrderCode || "OS vinculada"}
                     </div>
                   )}
+                  {administrator && <p className="text-sm text-slate-600">{apt.participants?.map((person) => person.name).join(", ") || "Sem responsável"}</p>}
                   {apt.address && (
                     <div className="flex items-center gap-1.5 text-sm text-slate-600">
                       <MapPin className="size-4" />
@@ -175,8 +192,11 @@ export default function AgendaPage() {
         </div>
       )}
 
+      <div className="mt-8"><WorkOrderList quotationId={quotationId} canManage={canManage} refresh={refreshTrigger} onSaved={handleSaved} /></div>
+
       {isModalOpen && (
         <AppointmentModal
+          people={canManage ? people : undefined}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSaved={handleSaved}

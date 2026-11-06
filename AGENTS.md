@@ -12,6 +12,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Conferir branch, remoto e upstream antes de publicar. Após o push, confirmar que HEAD e upstream coincidem e informar branch, hash, verificações e pendências locais. Se houver falha de autenticação, conflito, teste falhando ou dúvida sobre arquivos, relatar o impedimento e o que ficou salvo; nunca afirmar que houve push sem confirmação.
 - Registrar no repositório o estado funcional e o próximo passo quando houver trabalho incompleto. Não encerrar silenciosamente com trabalho existente apenas nesta máquina.
 
+- Em entregas que toquem agenda, ordens de serviço, autorização, rotas ou PDF, execute `pwsh ./scripts/regression.ps1`. Registre os SHAs das duas aplicações e os resultados de PostgreSQL e Playwright no fechamento.
+
 ## Backend access and integration authority
 
 - The canonical backend repository for this frontend is `C:\Users\victo\OneDrive\Documentos\projetos\agendamento`.
